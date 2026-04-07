@@ -13,6 +13,8 @@ topics:
   - name: "Topic Name"
     keywords: ["kw1", "kw2", "kw3"]
     priority: high                  # high | medium | low
+    # registered_by: "my-project"  # optional — set by `register` operation
+    # registered_at: "2026-04-07"  # optional — set by `register` operation
   # - name: "Another Topic"
   #   keywords: ["keyword1", "keyword2"]
   #   priority: medium
@@ -27,9 +29,11 @@ feeds:
   rss: []
     # - url: "https://blog.example.com/rss"
     #   name: "Example Blog"
+    #   registered_by: "my-project"  # optional — set by `register` operation
   github_repos: []
     # - repo: "owner/repo"
     #   watch: [releases, readme]
+    #   registered_by: "my-project"  # optional — set by `register` operation
   github_orgs: []
     # - org: "anthropic"
     #   watch: [new_repos, releases]

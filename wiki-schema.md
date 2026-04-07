@@ -157,7 +157,7 @@ aliases: [Alternative Name]
 ## Concurrency
 
 - **Single-writer**: only one agent should perform wiki write operations at a time
-- **Operations requiring single-writer**: ingest, update, lint, discover, run
+- **Operations requiring single-writer**: ingest, update, lint, discover, run, register, unregister
 - When updating existing pages, **append/integrate** — don't overwrite
 - Read operations (search, query, status) are safe to run concurrently
 
@@ -176,6 +176,7 @@ At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As th
 - **Template:** `config.example.yaml` — copy to `config.yaml` and customize
 - **Location:** `{{WIKI_ROOT}}/config.yaml` (gitignored)
 - **Schema:** topics, strategies, feeds, safety limits — see `config.example.yaml`
+- **Source tracking:** topics and feeds may include optional `registered_by` and `registered_at` fields to track which project registered them. Manually added entries don't need these fields.
 
 ### Discovery State
 
@@ -325,6 +326,73 @@ pending → approved → ingested
 - **ingested**: successfully processed into wiki pages
 - **rejected**: user declined (stays in history for dedup)
 - **failed**: ingest attempted but errored (stays in history)
+
+---
+
+## Operation — Register
+
+**Trigger:** "register" or "register `<project>`" or "register topics from `<project>`"
+
+Register scans a project to infer relevant topics and feeds, then appends them to the wiki's `config.yaml`. This is a **config-write** operation — it modifies `config.yaml` only, not wiki pages.
+
+**Steps:**
+
+1. Identify the project:
+   a. Use current working directory as the project (agent is already in the project repo)
+   b. Detect project name from `package.json` name field, directory name, or git remote
+2. Scan the project for topic signals:
+   a. `README.md` → extract technology stack, domain keywords
+   b. `package.json` / `Cargo.toml` / `go.mod` → extract dependencies as keyword hints
+   c. `docs/` → extract domain concepts
+   d. Existing wiki pages about this project → extract tags
+3. Propose topics to user:
+   ```
+   Detected topics for <project>:
+   | # | Topic | Keywords | Priority |
+   | 1 | React Performance | RSC, Suspense, hydration | high |
+   | 2 | TypeScript Patterns | generics, type inference | medium |
+   ...
+   Approve all / select by number / edit / skip?
+   ```
+4. User confirms or edits
+5. Read `config.yaml` (create from `config.example.yaml` if absent)
+6. For each approved topic:
+   a. Check dedup: skip if topic with same name exists AND `registered_by` matches
+   b. Check keyword overlap: Jaccard similarity |intersection| / |union| > 0.8 with existing topic → warn, let user decide
+   c. Append to `topics:` array with `registered_by` and `registered_at`
+7. Optionally propose feeds:
+   a. If project has known blog/RSS → suggest RSS feed
+   b. If project is a GitHub repo → suggest `github_repos` watch
+8. Write updated `config.yaml` — use surgical edit (find `topics:` array, append entry), never rewrite entire file
+9. Report: N topics added, M feeds added, K skipped (already registered)
+10. Append to `wiki/log.md`: `## [YYYY-MM-DD] register | <project> — N topics, M feeds`
+
+**Rules:**
+- `registered_by` and `registered_at` fields are **optional** — backward compatible with manually added entries
+- Idempotent: re-registering the same project updates existing entries, doesn't duplicate
+- No auto-trigger of discover — user explicitly runs discover after register
+- Dedup uses Jaccard similarity: |intersection| / |union| of keyword sets
+
+---
+
+## Operation — Unregister
+
+**Trigger:** "unregister `<project>`" or "remove `<project>` topics"
+
+Unregister removes all topics and feeds registered by a specific project. Only entries with a matching `registered_by` field are affected — manually added entries are never touched.
+
+**Steps:**
+
+1. Read `config.yaml`
+2. Find all entries (topics, RSS feeds, GitHub repos) with `registered_by: "<project>"`
+3. Present list to user for confirmation
+4. Remove confirmed entries from `config.yaml`
+5. Write updated `config.yaml`
+6. Append to `wiki/log.md`: `## [YYYY-MM-DD] unregister | <project> — N topics, M feeds removed`
+
+**Rules:**
+- Only removes entries with matching `registered_by` — manually added topics are never touched
+- If no entries found for the project, report and exit
 
 ---
 
@@ -493,5 +561,6 @@ During normal work in any project, the agent may discover durable knowledge wort
 | Discovery config | `config.yaml` (optional, gitignored) |
 | Config template | `config.example.yaml` |
 | Discovery state | `.discoveries/` (gitignored) |
+| Registered projects | `config.yaml` → `registered_by` field on topics/feeds |
 | Agent setup | `agent_templates/` |
 | Project overview | `README.md` |
