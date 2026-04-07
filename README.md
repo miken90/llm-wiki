@@ -77,28 +77,22 @@ llm-wiki/
 
 ## Quick Start
 
-### 1. Install qmd
+All platforms, one command:
 
 ```bash
-npm install -g @tobilu/qmd
+# qmd setup only
+node init.mjs
+
+# qmd + install agent skill (amp, claude, opencode, cursor)
+node init.mjs --agent amp
+node init.mjs --agent amp,claude    # multiple agents
 ```
 
-### 2. Index the wiki
+The script auto-detects your OS, installs qmd if missing, indexes wiki + sources, builds embeddings, and (with `--agent`) copies the skill file and merges qmd MCP config into the agent's settings.
 
-```bash
-cd /path/to/llm-wiki
-qmd collection add wiki/ --name wiki
-qmd collection add sources/ --name sources
-qmd context add qmd://wiki "LLM-maintained knowledge base"
-qmd context add qmd://sources "Raw source documents"
-qmd embed
-```
+> **WSL + Windows:** Run once on each side. WSL and Windows have separate npm environments and qmd indexes. Example: `./init.mjs --agent amp` on WSL, then `node init.mjs --agent claude` in PowerShell.
 
-### 3. Connect your agent
-
-Copy the appropriate template from `agent_templates/` to your agent's config directory. See `agent_templates/README.md` for per-agent instructions.
-
-### 4. Verify
+### Verify
 
 Open your agent in any project repo and ask: *"search wiki for LLM Wiki"* — it should return results from this wiki.
 
@@ -122,25 +116,59 @@ All operations are defined in `wiki-schema.md`. Summary:
 
 ## Obsidian Setup
 
-1. Open this folder as an Obsidian vault (File → Open Vault → Open folder as vault)
-2. Wikilinks are pre-configured (`[[wikilinks]]` enabled)
-3. Attachments auto-save to `sources/assets/`
+### 1. Install Obsidian
 
-### Recommended Plugins
+Download from [obsidian.md](https://obsidian.md/) — available for Windows, macOS, Linux.
 
-Install from Obsidian's Community Plugins browser:
+> **WSL users:** Obsidian runs on Windows side. The wiki at `D:\WORKSPACES\AI\llm-wiki` is the same folder as `/mnt/d/WORKSPACES/AI/llm-wiki` in WSL.
 
-| Plugin | Purpose |
-|--------|---------|
-| **Dataview** | Query page frontmatter — dynamic tables, lists, dashboards |
-| **Obsidian Git** | Auto-commit, pull/push from within Obsidian |
-| **Marp Slides** | Generate slide decks from wiki markdown |
+### 2. Open as Vault
 
-### Tips
+1. Launch Obsidian
+2. Click **Open folder as vault** (or File → Open Vault → Open folder as vault)
+3. Select the `llm-wiki` folder (e.g., `D:\WORKSPACES\AI\llm-wiki`)
+4. Obsidian loads — pre-configured settings apply automatically:
+   - `[[wikilinks]]` enabled
+   - New files default to `wiki/`
+   - Attachments save to `sources/assets/`
+
+### 3. Enable Community Plugins
+
+Obsidian ships with community plugins disabled by default:
+
+1. Settings (⚙️) → **Community plugins**
+2. Click **Turn on community plugins** → confirm
+3. Click **Browse** and install:
+
+| Plugin | What it does | Why you want it |
+|--------|-------------|-----------------|
+| **Dataview** | Query frontmatter with SQL-like syntax | Dynamic tables: list all entities, filter by tag, sort by date |
+| **Obsidian Git** | Auto-commit + push/pull from Obsidian | Keep wiki synced without leaving Obsidian |
+| **Marp Slides** | Render Marp slide decks in Obsidian | Generate presentations from wiki content |
+
+4. After installing each plugin, click **Enable**
+
+### 4. Verify
+
+- Open `wiki/index.md` — you should see the page catalog
+- Click any `[[wikilink]]` — it should navigate to the target page
+- Open **Graph View** (Ctrl/Cmd+G) — you should see nodes for existing pages
+- Try creating a test file — it should land in `wiki/`
+- Drag an image into a page — it should save to `sources/assets/`
+
+### Tips & Tricks
 
 - **Web Clipper**: Install [Obsidian Web Clipper](https://obsidian.md/clipper) browser extension to clip web articles directly to `sources/`
-- **Download images**: In Settings → Hotkeys, bind Ctrl+Shift+D to "Download attachments for current file" — images save to `sources/assets/`
-- **Graph view**: Use Obsidian's graph view to see wiki structure — hubs, orphans, clusters
+- **Download images**: Settings → Hotkeys → search "Download" → bind **Ctrl+Shift+D** to "Download attachments for current file" — images save to `sources/assets/`
+- **Graph view**: Best way to see wiki structure — hubs, orphans, clusters. Filter by folder to see only `wiki/`
+- **Dataview queries**: Add to any page to create dynamic lists:
+  ```
+  ```dataview
+  TABLE type, updated, tags
+  FROM "wiki"
+  SORT updated DESC
+  ```
+  ```
 
 ## Cross-OS Compatibility
 

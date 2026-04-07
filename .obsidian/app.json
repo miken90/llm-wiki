@@ -7,5 +7,12 @@
   "alwaysUpdateLinks": true,
   "newLinkFormat": "shortest",
   "livePreview": true,
-  "spellcheck": true
+  "spellcheck": true,
+  "userIgnoreFilters": [
+    "plans/",
+    "agent_templates/",
+    ".team/",
+    ".claude/",
+    "README.md"
+  ]
 }
