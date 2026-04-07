@@ -20,6 +20,9 @@ sources/*
 !sources/assets/
 sources/assets/*
 !sources/assets/.gitkeep
+!sources/articles/
+sources/articles/*
+!sources/articles/.gitkeep
 wiki/entities/*
 !wiki/entities/.gitkeep
 wiki/concepts/*
@@ -37,3 +40,9 @@ outputs/*
 plans/
 .claude/
 .team/
+
+# Discovery state (runtime)
+.discoveries/*.json
+
+# User config (contains local topics/feeds)
+config.yaml

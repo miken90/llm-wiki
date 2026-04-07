@@ -1,0 +1,35 @@
+# LLM Wiki — Discovery Configuration
+#
+# Copy this file to config.yaml and customize for your wiki.
+# config.yaml is gitignored — safe to add personal topics/feeds.
+#
+# All fields are optional. Operations degrade gracefully without config.
+
+wiki:
+  name: "My LLM Wiki"
+  language: "en"                    # content language
+
+topics:
+  - name: "Topic Name"
+    keywords: ["kw1", "kw2", "kw3"]
+    priority: high                  # high | medium | low
+  # - name: "Another Topic"
+  #   keywords: ["keyword1", "keyword2"]
+  #   priority: medium
+
+discovery:
+  strategies: [web_search, feed_poll, github_watch]
+  max_candidates_per_run: 20       # safety limit
+  auto_ingest: false               # require approval by default
+  recency: "month"                 # prefer recent sources
+
+feeds:
+  rss: []
+    # - url: "https://blog.example.com/rss"
+    #   name: "Example Blog"
+  github_repos: []
+    # - repo: "owner/repo"
+    #   watch: [releases, readme]
+  github_orgs: []
+    # - org: "anthropic"
+    #   watch: [new_repos, releases]
