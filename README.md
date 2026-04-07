@@ -52,8 +52,9 @@ The wiki is a **persistent, compounding artifact**. Cross-references are already
 ```
 llm-wiki/
 ├── sources/              # Raw source documents (immutable)
+│   ├── articles/         # Auto-discovered web articles
 │   ├── assets/           # Downloaded images and attachments
-│   └── *.md              # Source files
+│   └── *.md              # Manually added source files
 ├── wiki/                 # LLM-maintained knowledge pages
 │   ├── index.md          # Auto-maintained page catalog
 │   ├── log.md            # Append-only operations log
@@ -63,7 +64,13 @@ llm-wiki/
 │   ├── syntheses/        # Cross-source synthesis pages
 │   └── decisions/        # Architecture/business decisions
 ├── outputs/              # Durable query artifacts (reports, slides)
+├── .discoveries/         # Discovery state (gitignored)
+│   ├── history.json      # Processed source dedup registry
+│   ├── inbox.json        # Candidate queue (pending approval)
+│   └── gaps.json         # Knowledge gaps from lint
 ├── agent_templates/      # Per-agent config templates
+├── config.example.yaml   # Discovery config template
+├── config.yaml           # Your discovery config (gitignored)
 ├── wiki-schema.md        # Source of truth for all conventions
 └── README.md             # This file
 ```
@@ -123,6 +130,46 @@ All operations are defined in `wiki-schema.md`. Summary:
 | **Ingest** | `ingest <source_path>` | Read source → discuss with user → create/update wiki pages → update index + log |
 | **Query** | Ask a question | Search wiki → read pages → synthesize answer → optionally file back |
 | **Lint** | `lint wiki` | Check orphans, broken links, frontmatter, contradictions, stale claims, data gaps |
+| **Discover** | `discover` | Search web/feeds/GitHub → dedup → queue candidates to inbox |
+| **Run** | `run` | Full cycle: discover → approve → ingest → lint (max 2 rounds) |
+| **Status** | `status` | Dashboard: page counts, health, capabilities |
+
+## Discovery
+
+The wiki can actively find new sources based on topics you configure.
+
+### Setup
+
+1. Copy the example config: `cp config.example.yaml config.yaml`
+2. Edit `config.yaml` — add your topics and keywords
+3. Run `discover` in your agent to find new sources
+
+### Workflow
+
+```
+discover → review inbox → approve → run → wiki grows
+```
+
+1. **Configure**: Edit `config.yaml` with topics, feeds, GitHub repos to watch
+2. **Discover**: Agent searches web/feeds/GitHub for new sources
+3. **Review**: Candidates queue in `.discoveries/inbox.json` for approval
+4. **Run**: Approved candidates get ingested into wiki, then lint runs
+5. **Repeat**: Lint finds gaps → discover fills them → wiki compounds
+
+### Config Example
+
+```yaml
+topics:
+  - name: "AI Agents"
+    keywords: ["LLM agents", "agentic AI", "tool use"]
+    priority: high
+
+discovery:
+  strategies: [web_search, feed_poll, github_watch]
+  auto_ingest: false  # review before ingest (recommended)
+```
+
+See `config.example.yaml` for full options. Config is optional — operations degrade gracefully without it.
 
 ## Use Cases
 
