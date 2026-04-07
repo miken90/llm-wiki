@@ -2,7 +2,7 @@
 ## LLM Wiki Integration
 
 - **WIKI_ROOT**: {{WIKI_ROOT}}
-- Search: hybrid (qmd MCP `query` for semantic, native tools for keyword/read/write)
+- Search: hybrid (qmd CLI for semantic, native tools for keyword/read/write)
 
 ### Context Gathering Priority
 1. **Search wiki first** — prior knowledge on the topic
@@ -11,10 +11,10 @@
 4. Read full files — only when need complete context
 
 ### Tool Map (absolute paths, work cross-project)
-- Semantic search: qmd MCP `query` tool
+- Semantic search: `qmd query "..." -c wiki --md` via shell
 - Keyword search: grep in `{{WIKI_ROOT}}/wiki/`
-- Read/write wiki pages: native read/write/edit tools with `{{WIKI_ROOT}}/` prefix
-- Do NOT use qmd `get` or `multi_get` — returns unsupported content type
+- Read wiki page: `qmd get <file>` via shell (fallback: native read with `{{WIKI_ROOT}}/` prefix)
+- Write wiki pages: native write/edit tools with `{{WIKI_ROOT}}/` prefix
 
 ### Operations
 - **Ingest source**: "ingest `<path>`" — source already in sources/
@@ -36,7 +36,7 @@ Read {{WIKI_ROOT}}/wiki-schema.md for detailed steps. Config: {{WIKI_ROOT}}/conf
 |------------|------|
 | web_search | web_search (if available) |
 | http_fetch | read_web_page (if available) |
-| qmd_query | qmd MCP `query` |
+| qmd_query | `qmd query` via shell |
 
 Skip unavailable strategies, don't fail.
 <!-- llm-wiki:end -->

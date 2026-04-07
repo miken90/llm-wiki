@@ -28,7 +28,7 @@ wiki/             → LLM-maintained knowledge pages (structured, interlinked)
 wiki-schema.md    → Conventions and operations (this file)
 ```
 
-This wiki is a **shared knowledge service**. Agents in other project repos connect via qmd MCP server to search, read, and write wiki pages. The wiki repo is not tied to any single project.
+This wiki is a **shared knowledge service**. Agents in other project repos connect via qmd CLI to search, read, and write wiki pages. The wiki repo is not tied to any single project.
 
 ### Directory Structure
 
@@ -51,7 +51,7 @@ llm-wiki/
 │   ├── history.json          # Processed source dedup registry
 │   ├── inbox.json            # Candidate queue (pending approval)
 │   └── gaps.json             # Knowledge gaps from lint
-├── agent_templates/          # Per-agent instruction files + MCP config
+├── agent_templates/          # Per-agent instruction files
 ├── config.example.yaml       # Discovery config template
 ├── config.yaml               # Your discovery config (gitignored, optional)
 ├── wiki-schema.md            # This file — source of truth
@@ -163,7 +163,7 @@ aliases: [Alternative Name]
 
 ## Search
 
-- **Primary:** qmd CLI (`qmd query "..."`) or qmd MCP tools (`query`, `get`, `multi_get`, `status`)
+- **Primary:** qmd CLI (`qmd query "..."`, `qmd search "..."`, `qmd status`)
 - **Fallback:** native file-reading and search capabilities of the agent
 - **Setup:** `qmd collection add wiki/ --name wiki && qmd embed`
 
