@@ -35,8 +35,9 @@ This wiki is a **shared knowledge service**. Agents in other project repos conne
 ```
 llm-wiki/
 ├── sources/                  # Raw source documents — IMMUTABLE
+│   ├── articles/             # Auto-discovered web articles
 │   ├── assets/               # Downloaded images and attachments
-│   └── *.md, *.txt           # Source files
+│   └── *.md, *.txt           # Manually added source files
 ├── wiki/                     # LLM-maintained knowledge pages
 │   ├── index.md              # Auto-maintained page catalog
 │   ├── log.md                # Append-only operations log
@@ -46,7 +47,13 @@ llm-wiki/
 │   ├── syntheses/            # Cross-source synthesis pages
 │   └── decisions/            # Architecture/business decision records
 ├── outputs/                  # Durable query artifacts (reports, comparisons, slides)
+├── .discoveries/             # Discovery state (gitignored)
+│   ├── history.json          # Processed source dedup registry
+│   ├── inbox.json            # Candidate queue (pending approval)
+│   └── gaps.json             # Knowledge gaps from lint
 ├── agent_templates/          # Per-agent instruction files + MCP config
+├── config.example.yaml       # Discovery config template
+├── config.yaml               # Your discovery config (gitignored, optional)
 ├── wiki-schema.md            # This file — source of truth
 └── README.md                 # Project overview and setup guide
 ```
@@ -150,8 +157,9 @@ aliases: [Alternative Name]
 ## Concurrency
 
 - **Single-writer**: only one agent should perform wiki write operations at a time
+- **Operations requiring single-writer**: ingest, update, lint, discover, run
 - When updating existing pages, **append/integrate** — don't overwrite
-- Read operations (search, query) are safe to run concurrently
+- Read operations (search, query, status) are safe to run concurrently
 
 ## Search
 
@@ -160,6 +168,163 @@ aliases: [Alternative Name]
 - **Setup:** `qmd collection add wiki/ --name wiki && qmd embed`
 
 At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As the wiki grows, qmd provides hybrid BM25 + vector search with LLM re-ranking.
+
+## Configuration
+
+`config.yaml` is **optional**. If absent, discovery operations degrade gracefully — web_search skipped (no topics), feed_poll skipped (no feeds), github_watch skipped (no repos). Existing operations (ingest, query, lint) are unaffected.
+
+- **Template:** `config.example.yaml` — copy to `config.yaml` and customize
+- **Location:** `{{WIKI_ROOT}}/config.yaml` (gitignored)
+- **Schema:** topics, strategies, feeds, safety limits — see `config.example.yaml`
+
+### Discovery State
+
+Runtime state lives in `.discoveries/` (gitignored, JSON files):
+
+| File | Purpose | Key fields |
+|------|---------|------------|
+| `history.json` | Dedup registry of all processed URLs | `url`, `url_normalized`, `status`, `strategy` |
+| `inbox.json` | Candidate queue awaiting approval | `url`, `title`, `snippet`, `score`, `status` |
+| `gaps.json` | Knowledge gaps detected by lint | `concept`, `priority`, `query_hints` |
+
+**State recovery:** When reading `.discoveries/*.json`, validate structure on load. If malformed or unreadable, reset to empty defaults (`{ "version": 1, ... }`) and warn user. Never fail an operation due to corrupted state.
+
+## Capability Model
+
+Discovery operations use abstract capabilities — each agent template maps these to native tools:
+
+| Capability | Purpose | Required? |
+|------------|---------|-----------|
+| `web_search` | Find new sources by keyword | Optional |
+| `http_fetch` | Download article content | Optional |
+| `file_read` | Read config, state, sources | Required |
+| `file_write` | Write sources, wiki, state | Required |
+| `qmd_query` | Semantic search for dedup/gaps | Required |
+
+**Graceful degradation:** If a capability is unavailable, skip that strategy and continue. Never fail an entire operation because one strategy is unsupported. Report degraded mode in status.
+
+---
+
+## Operation — Discover
+
+**Trigger:** "discover" or "find new sources"
+
+**Steps:**
+
+1. Read `config.yaml` → topics, strategies, feeds (if absent, use empty defaults)
+2. Read `.discoveries/gaps.json` → knowledge gaps from lint
+3. Read `.discoveries/history.json` → dedup registry
+4. For each enabled strategy:
+   a. **web_search**: search by topic keywords + gap query hints (if `web_search` capable)
+   b. **feed_poll**: check RSS URLs, known endpoints (if `http_fetch` capable)
+   c. **github_watch**: check tracked repos/orgs for releases, READMEs (if `http_fetch` capable)
+5. For each candidate found, apply 3-layer dedup:
+   a. URL exact match against history → skip if found
+   b. Normalized title match against history → skip if found
+   c. qmd semantic search against wiki + sources:
+      - Similarity > 0.9 → duplicate, skip
+      - Similarity 0.6–0.9 → flag as overlap, lower score
+      - Similarity < 0.6 → novel, boost score
+   d. Score = topic_relevance × recency × gap_match × novelty
+6. Write candidates to `.discoveries/inbox.json` (status: `pending`)
+7. Report: N candidates found, M after dedup, top candidates listed
+8. Append to `wiki/log.md`: `## [YYYY-MM-DD] discover | N candidates queued`
+
+**Rules:**
+- Max candidates per run: `config.discovery.max_candidates_per_run` (default: 20)
+- Dedup thresholds (0.9/0.6) are tunable — adjust if too aggressive/permissive
+- Discovered URLs must be validated — no `file://` or local paths
+- Fetched content must be sanitized — no script injection into markdown
+
+---
+
+## Operation — Run
+
+**Trigger:** "run" or "run full cycle"
+
+**Steps:**
+
+1. Run discover (if inbox is empty or stale)
+2. Present inbox as numbered list, ask: "Approve all / select by number / reject all?"
+3. For each approved candidate:
+   a. Fetch content (if not already fetched, requires `http_fetch`)
+   b. Save to `sources/articles/YYYY-MM-DD-<slug>.md` with frontmatter:
+      ```yaml
+      ---
+      title: "Article Title"
+      source_url: "https://example.com/article"
+      author: "Author Name"
+      date_published: <from source>
+      date_ingested: <today>
+      format: web-article
+      discovered_by: <strategy>
+      topic: "Topic Name"
+      ---
+      ```
+   c. Run standard ingest operation
+   d. Update `.discoveries/history.json` (status: `ingested`)
+   e. Remove from `inbox.json`
+4. For rejected candidates:
+   a. Move to `history.json` (status: `rejected`)
+   b. Remove from `inbox.json`
+5. Re-index qmd: `qmd update && qmd embed` (once, after all ingests)
+6. Run lint
+7. If lint finds critical gaps AND this is round 1:
+   a. Update `gaps.json`
+   b. Run discover again (round 2, `max_candidates` reduced)
+   c. Repeat approval + ingest
+8. Generate summary report → `outputs/run-YYYY-MM-DD.md`
+9. Append to `wiki/log.md`: `## [YYYY-MM-DD] run | N ingested, M rejected`
+
+**Rules:**
+- **Max 2 rounds** to prevent infinite loops
+- Approval required unless `config.discovery.auto_ingest` is `true`
+- Re-index once after all ingests (not per-source)
+
+---
+
+## Operation — Status
+
+**Trigger:** "status" or "wiki status"
+
+**Steps:**
+
+1. Count wiki pages by type (entities, concepts, summaries, syntheses, decisions)
+2. Count sources in `sources/`
+3. Read `.discoveries/inbox.json` → pending/approved counts
+4. Read `.discoveries/gaps.json` → open gaps count
+5. Read `wiki/log.md` → extract last discover, ingest, lint dates
+6. Check qmd status
+7. Assess agent capabilities (`web_search` available? `http_fetch`?)
+8. Report health: **Good** | **Warning** | **Needs Attention**
+
+**Output format:**
+```
+Wiki Status
+───────────
+Pages:      N total (E entities, C concepts, S summaries, Y syntheses, D decisions)
+Sources:    N total (M manual, A auto-discovered)
+Inbox:      N pending candidates
+Gaps:       N open knowledge gaps
+Last lint:  YYYY-MM-DD
+Last discover: YYYY-MM-DD
+Capabilities: web_search ✓/✗, http_fetch ✓/✗, qmd ✓/✗
+Health:     [Good | Warning | Needs Attention]
+```
+
+### Candidate Lifecycle
+
+```
+pending → approved → ingested
+    │         └───→ failed
+    └──→ rejected
+```
+
+- **pending**: discovered, awaiting user review
+- **approved**: user confirmed, ready for ingest
+- **ingested**: successfully processed into wiki pages
+- **rejected**: user declined (stays in history for dedup)
+- **failed**: ingest attempted but errored (stays in history)
 
 ---
 
@@ -308,8 +473,9 @@ During normal work in any project, the agent may discover durable knowledge wort
 8. Check missing cross-references — related pages that should link to each other but don't
 9. Suggest web searches to fill knowledge gaps
 10. Suggest new questions to investigate
-11. Report: errors, warnings, suggestions, research backlog
-12. Append to `wiki/log.md`: `## [YYYY-MM-DD] lint | errors: N, warnings: N`
+11. If `.discoveries/` exists: write detected knowledge gaps to `.discoveries/gaps.json` (enables discover → ingest → lint → discover loop)
+12. Report: errors, warnings, suggestions, research backlog
+13. Append to `wiki/log.md`: `## [YYYY-MM-DD] lint | errors: N, warnings: N`
 
 ---
 
@@ -321,7 +487,11 @@ During normal work in any project, the agent may discover durable knowledge wort
 | Page catalog | `wiki/index.md` |
 | Operations log | `wiki/log.md` |
 | Raw sources | `sources/` (immutable) |
+| Discovered sources | `sources/articles/` |
 | Wiki pages | `wiki/` subdirectories |
 | Query artifacts | `outputs/` |
+| Discovery config | `config.yaml` (optional, gitignored) |
+| Config template | `config.example.yaml` |
+| Discovery state | `.discoveries/` (gitignored) |
 | Agent setup | `agent_templates/` |
 | Project overview | `README.md` |
