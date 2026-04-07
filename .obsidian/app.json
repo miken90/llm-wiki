@@ -1,0 +1,11 @@
+{
+  "attachmentFolderPath": "sources/assets",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "wiki",
+  "useMarkdownLinks": false,
+  "showUnsupportedFiles": true,
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "livePreview": true,
+  "spellcheck": true
+}

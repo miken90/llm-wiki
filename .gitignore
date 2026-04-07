@@ -1,0 +1,39 @@
+# qmd index cache
+.qmd/
+
+# Obsidian workspace (user-specific UI state)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/plugins/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Wiki data (this repo is scaffold only — keep .gitkeep for folder structure)
+sources/*
+!sources/.gitkeep
+!sources/assets/
+sources/assets/*
+!sources/assets/.gitkeep
+wiki/entities/*
+!wiki/entities/.gitkeep
+wiki/concepts/*
+!wiki/concepts/.gitkeep
+wiki/summaries/*
+!wiki/summaries/.gitkeep
+wiki/syntheses/*
+!wiki/syntheses/.gitkeep
+wiki/decisions/*
+!wiki/decisions/.gitkeep
+outputs/*
+!outputs/.gitkeep
+
+# Plans and internal tooling
+plans/
+.claude/
+.team/
