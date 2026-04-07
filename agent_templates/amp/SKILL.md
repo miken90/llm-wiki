@@ -1,6 +1,6 @@
 ---
 name: llm-wiki
-description: Query and maintain the shared LLM Wiki knowledge base from any project. Use when researching topics, before non-trivial work, or when discovering durable knowledge worth preserving. Trigger phrases - "search wiki", "query wiki", "ingest", "lint wiki", "add source", "wiki", "discover", "run", "status".
+description: Query and maintain the shared LLM Wiki knowledge base from any project. Use when researching topics, before non-trivial work, or when discovering durable knowledge worth preserving. Trigger phrases - "search wiki", "query wiki", "ingest", "lint wiki", "add source", "wiki", "discover", "run", "status", "register", "unregister".
 ---
 
 # LLM Wiki
@@ -63,6 +63,8 @@ All tools work cross-project via absolute paths. WIKI_ROOT = {{WIKI_ROOT}}
 - **Discover**: "discover" or "find new sources" — search web/feeds/GitHub, queue to inbox
 - **Run**: "run" or "run full cycle" — discover → approve → ingest → lint (max 2 rounds)
 - **Status**: "status" or "wiki status" — page counts, health, capabilities
+- **Register**: "register `<project>`" — scan project, propose topics/feeds, append to config.yaml
+- **Unregister**: "unregister `<project>`" — remove project's registered topics/feeds from config.yaml
 
 For detailed steps, read wiki-schema.md Discovery/Run/Status sections.
 

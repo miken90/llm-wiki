@@ -12,4 +12,6 @@
 - `discover` — find new sources → queue to inbox. Load `llm-wiki` skill first.
 - `run` — full cycle: discover → approve → ingest → lint
 - `status` — wiki health dashboard
+- `register <project>` — scan project → propose topics → append to config.yaml
+- `unregister <project>` — remove project's topics/feeds from config.yaml
 <!-- llm-wiki:end -->

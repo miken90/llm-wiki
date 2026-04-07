@@ -24,19 +24,19 @@ Replace `{{WIKI_ROOT}}` with the absolute path to this wiki repo (e.g., `/mnt/d/
 
 ## Per-Agent Install
 
-| Agent | Copy instruction file to | Copy config.json to |
-|-------|--------------------------|---------------------|
-| **Amp** | `~/.config/amp/skills/llm-wiki/SKILL.md` | Merge `mcpServers` into `~/.config/amp/settings.json` |
-| **Claude Code** | Project root as `CLAUDE.md` or `~/.claude/CLAUDE.md` (global) | Merge `mcpServers` into `~/.claude/settings.json` |
-| **OpenCode** | Project root as `AGENTS.md` | Merge `mcp` into `~/.config/opencode/opencode.json` |
-| **Cursor** | Project root as `.cursorrules` | Merge `mcpServers` into `~/.cursor/mcp.json` |
+Use `node init.mjs --agent <name>` (recommended) or follow manual steps below.
+
+| Agent | What gets installed | MCP config |
+|-------|---------------------|------------|
+| **Amp** | `SKILL.md` → `~/.config/amp/skills/llm-wiki/` + snippet → `~/.config/amp/AGENTS.md` | `~/.config/amp/settings.json` |
+| **Claude Code** | snippet → `~/.claude/CLAUDE.md` | `~/.claude.json` (user scope) or `claude mcp add` |
+| **OpenCode** | snippet → `~/.config/opencode/AGENTS.md` | `~/.config/opencode/opencode.json` |
+| **Cursor** | snippet → `~/.cursor/.cursorrules` | `~/.cursor/mcp.json` |
 
 ### Steps
 
-1. Copy the instruction file from `agent_templates/<agent>/` to the location above
-2. Open the corresponding `config.json` and merge the MCP server entry into your agent's settings
-3. Replace all `{{WIKI_ROOT}}` placeholders with the absolute path to this wiki repo
-4. Restart your agent
+1. Run `node init.mjs --agent <name>` — handles everything automatically
+2. Restart your agent
 
 ## Verify
 
@@ -52,7 +52,8 @@ Each agent directory contains:
 
 | File | Purpose |
 |------|---------|
-| Instruction file | Thin wrapper (~30-50 lines) referencing `wiki-schema.md` |
+| Snippet file (`.snippet.md` / `.snippet`) | Wiki instructions injected between `<!-- llm-wiki:start/end -->` markers |
 | `config.json` | qmd MCP server config in the agent's native format |
+| `SKILL.md` (Amp only) | Full skill file copied to `~/.config/amp/skills/llm-wiki/` |
 
-All instruction files reference `wiki-schema.md` as the source of truth — they do not duplicate rules.
+All snippet files reference `wiki-schema.md` as the source of truth — they do not duplicate rules.

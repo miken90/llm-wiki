@@ -16,10 +16,12 @@ Tool Map (absolute paths, work cross-project):
 - Read/write wiki pages: native tools with WIKI_ROOT prefix
 - Do NOT use qmd get or multi_get — unsupported content type
 
-Operations: ingest, query, lint, discover, run, status
+Operations: ingest, query, lint, discover, run, status, register, unregister
 - discover: search web/feeds/GitHub → queue candidates to inbox
 - run: discover → approve → ingest → lint (max 2 rounds)
 - status: page counts, health, capabilities
+- register <project>: scan project → propose topics → append to config.yaml
+- unregister <project>: remove project's topics/feeds from config.yaml
 
 Read WIKI_ROOT/wiki-schema.md for steps. Config: WIKI_ROOT/config.yaml
 Skip web strategies if web tools unavailable.

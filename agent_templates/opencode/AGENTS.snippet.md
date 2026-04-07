@@ -25,6 +25,8 @@
 - **Discover**: "discover" → search web/feeds/GitHub → queue candidates to inbox
 - **Run**: "run" → discover → approve → ingest → lint (max 2 rounds)
 - **Status**: "status" → page counts, health, capabilities
+- **Register**: "register `<project>`" → scan project → propose topics → append to config.yaml
+- **Unregister**: "unregister `<project>`" → remove project's registered topics/feeds
 - **Organic**: proactively write durable knowledge during normal work
 
 Read {{WIKI_ROOT}}/wiki-schema.md for detailed steps. Config: {{WIKI_ROOT}}/config.yaml
