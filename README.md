@@ -133,6 +133,8 @@ All operations are defined in `wiki-schema.md`. Summary:
 | **Discover** | `discover` | Search web/feeds/GitHub → dedup → queue candidates to inbox |
 | **Run** | `run` | Full cycle: discover → approve → ingest → lint (max 2 rounds) |
 | **Status** | `status` | Dashboard: page counts, health, capabilities |
+| **Register** | `register <project>` | Scan project → propose topics/feeds → append to config.yaml |
+| **Unregister** | `unregister <project>` | Remove project's registered topics/feeds from config.yaml |
 
 ## Discovery
 
@@ -170,6 +172,24 @@ discovery:
 ```
 
 See `config.example.yaml` for full options. Config is optional — operations degrade gracefully without it.
+
+### Multi-Project Setup
+
+Each project can register its own topics into the shared wiki:
+
+```
+# From any project repo, ask your agent:
+register my-react-app
+register my-api-server
+```
+
+Topics are tagged with `registered_by` for traceability. To remove a project's topics:
+
+```
+unregister my-react-app
+```
+
+The wiki compounds knowledge across all registered projects. See `wiki-schema.md` for the full Register and Unregister operation steps.
 
 ## Use Cases
 
