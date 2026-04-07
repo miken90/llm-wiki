@@ -55,7 +55,7 @@ Three immutable layers:
 
 ### Shared Knowledge Service
 
-The wiki repo is a central knowledge base. Agents in other project repos access it via qmd MCP server to search, read, and write wiki pages. Enables cross-project knowledge reuse.
+The wiki repo is a central knowledge base. Agents in other project repos access it via qmd CLI to search, read, and write wiki pages. Enables cross-project knowledge reuse.
 
 ## Non-Functional Requirements
 
@@ -94,7 +94,7 @@ The wiki repo is a central knowledge base. Agents in other project repos access 
 ### Required
 
 - **Node.js ≥ 22** — for qmd search engine
-- **qmd** — markdown search with BM25 + vector search + MCP server
+- **qmd** — markdown search with BM25 + vector search
 - **Git** — version control for wiki state
 - **File I/O** — reading sources and writing wiki pages
 
@@ -140,7 +140,7 @@ The wiki repo is a central knowledge base. Agents in other project repos access 
 - Knowledge gaps identified and written to `gaps.json`
 
 ### Cross-Project Integration
-- Agent in project repo can query wiki via qmd MCP server
+- Agent in project repo can query wiki via qmd CLI
 - Results include citations with `[[wikilinks]]`
 - Project can register topics (executed, recorded in log)
 - Project can unregister topics (removed, recorded in log)
@@ -197,7 +197,7 @@ The wiki repo is a central knowledge base. Agents in other project repos access 
 
 ### External
 - **Node.js ≥ 22** — language runtime
-- **qmd** — search engine and MCP server
+- **qmd** — search engine
 - **Git** — version control
 - **Agent platforms** — Amp, Claude, OpenCode, Cursor
 
@@ -205,7 +205,7 @@ The wiki repo is a central knowledge base. Agents in other project repos access 
 - `wiki-schema.md` — All conventions and operations
 - `init.mjs` — Setup and update script
 - `config.example.yaml` — Discovery configuration template
-- `agent_templates/` — Per-agent instruction files + MCP config
+- `agent_templates/` — Per-agent instruction files
 
 ## Open Questions & Future Considerations
 

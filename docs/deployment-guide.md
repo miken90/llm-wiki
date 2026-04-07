@@ -95,7 +95,7 @@ node init.mjs --check --agent amp   # specific agent
 2. Checks if qmd is installed, installs if missing
 3. Creates qmd collections for `wiki/` and `sources/`
 4. Builds vector embeddings for search
-5. (With `--agent`) Copies skill file and merges MCP config
+5. (With `--agent`) Installs skill file and rules snippet
 
 **Output:**
 ```
@@ -103,8 +103,8 @@ node init.mjs --check --agent amp   # specific agent
 ✓ Collection 'wiki' created
 ✓ Collection 'sources' created
 ✓ Embeddings built (123 pages, 456 sources)
-✓ Amp skill installed to ~/.claude/skills/llm-wiki/
-✓ MCP config merged into ~/.claude/config.json
+✓ Amp skill installed to ~/.config/amp/skills/llm-wiki/
+✓ Rules snippet injected into ~/.config/amp/AGENTS.md
 ```
 
 ### Step 4: Verify Installation
@@ -120,7 +120,7 @@ Expected: Results from this wiki repo, ranked by relevance.
 **Troubleshooting:**
 - If no results → check `node init.mjs --check` status
 - If qmd not found → run `node init.mjs` again to reinstall
-- If MCP config not merged → run `node init.mjs --agent <name>` again
+- If skill not installed → run `node init.mjs --agent <name>` again
 
 ## Configuration
 
@@ -270,20 +270,6 @@ node init.mjs --agent amp
 3. Verify disk space (need 500 MB free)
 4. Check file permissions: `ls -la wiki/`
 
-### Issue: "Failed to merge MCP config"
-
-**Symptoms:**
-```
-✗ Failed to merge MCP config into ~/.claude/config.json
-```
-
-**Solutions:**
-1. Check file exists: `ls ~/.claude/config.json`
-2. Verify JSON syntax: `cat ~/.claude/config.json | jq .`
-3. Manual merge: Copy config from `agent_templates/claude/config.json`
-4. For Claude Code: check `~/.claude.json` under `projects.<path>.mcpServers`
-5. Re-run: `node init.mjs --agent claude`
-
 ### Issue: "Agent can't search wiki"
 
 **Symptoms:** Agent returns no results when asked "search wiki for X"
@@ -292,7 +278,7 @@ node init.mjs --agent amp
 1. Check qmd status: `qmd status`
 2. Verify wiki collection indexed: `qmd collection list`
 3. Re-index: `qmd collection update && qmd embed`
-4. Check MCP config: For Claude Code, check `~/.claude.json` under `projects` key
+4. Check agent skill: run `node init.mjs --check --agent <name>`
 
 ### Issue: "Obsidian can't open as vault"
 

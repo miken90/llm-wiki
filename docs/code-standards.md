@@ -366,7 +366,7 @@ All agent templates use idempotent comment markers:
 **Rules:**
 - Markers define exact boundaries for injection
 - Re-running `init.mjs --agent <name>` removes old block and inserts new one
-- Markers work with markdown (claude, opencode), rules (.cursorrules), JSON (config.json)
+- Markers work with markdown (claude, opencode, amp) and rules files (.cursorrules)
 - Never manually edit content between markers
 
 ### Agent Capabilities
@@ -378,7 +378,7 @@ Each agent maps to native tools:
 | http_fetch | ✅ fetch | ✅ WebFetch | ✅ fetch | ✅ @web |
 | file_read | ✅ read | ✅ Read | ✅ read | ✅ read |
 | file_write | ✅ write | ✅ Write | ✅ write | ✅ write |
-| qmd_query | ✅ qmd MCP | ✅ qmd MCP | ✅ qmd MCP | ✅ qmd MCP |
+| qmd_query | ✅ qmd CLI | ✅ qmd CLI | ✅ qmd CLI | ✅ qmd CLI |
 
 ## Code Organization
 
@@ -440,7 +440,7 @@ body (optional)
 feat(schema): add Update operation to wiki-schema.md
 fix(init): resolve qmd command path on Windows npm
 docs(readme): add Obsidian setup guide
-refactor(agent-templates): deduplicate MCP config
+refactor(agent-templates): simplify agent setup
 ```
 
 **Rules:**

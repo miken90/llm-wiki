@@ -15,7 +15,7 @@
    │  (raw, immut)│→│ (LLM-maint)  │→│ (reports)    │
    └──────────────┘ └──────────────┘ └──────────────┘
             ▲              ▲
-            │              │ search/read/write via qmd MCP
+            │              │ search/read/write via qmd CLI
     human curates    agents use operations
             │              │
    ┌────────┴──────────────┴────────┐
@@ -394,7 +394,7 @@ novelty          = 1.0 if <0.6 semantic similarity, 0.5 if 0.6-0.9, 0.1 if >0.9
 
 **Implementation:** Agent discipline (one agent per operation at a time). Git prevents conflicts at rest.
 
-**Multi-wiki federation:** Future — each wiki maintains its own schema + state, coordination via MCP.
+**Multi-wiki federation:** Future — each wiki maintains its own schema + state, coordination via search gateway.
 
 ## Configuration & State Management
 
@@ -482,26 +482,26 @@ novelty          = 1.0 if <0.6 semantic similarity, 0.5 if 0.6-0.9, 0.1 if >0.9
 
 ### Multi-Wiki Federation (Future)
 - Separate wiki repos, each with own schema + state
-- MCP gateway for cross-wiki search
+- Search gateway for cross-wiki queries
 - Topic namespacing (wiki1/topic vs wiki2/topic)
 - Shared artifact registry (avoid duplicate ingests across wikis)
 
 ## Agent Integration Points
 
 ### Four Agent Platforms
-- **Amp** — Full SKILL.md + MCP config
+- **Amp** — Full SKILL.md + AGENTS.snippet.md
 - **Claude** — CLAUDE.snippet.md injected into ~/.claude/CLAUDE.md
-- **OpenCode** — AGENTS.snippet.md + MCP in opencode.json
-- **Cursor** — .cursorrules.snippet + MCP in mcp.json
+- **OpenCode** — AGENTS.snippet.md injected into ~/.config/opencode/AGENTS.md
+- **Cursor** — .cursorrules.snippet injected into ~/.cursor/.cursorrules
 
-### MCP Server (qmd)
-**Shared service** — all agents connect to same qmd server.
+### Search Engine (qmd)
+**Shared CLI tool** — all agents use the same qmd commands via Bash/shell.
 
-**Tools exposed:**
-- `query` — Search wiki/sources
-- `get` — Fetch single page
-- `multi_get` — Fetch multiple pages
-- `status` — Check wiki health
+**Commands:**
+- `qmd query "..." -c wiki --md` — Semantic search
+- `qmd search "..." -c wiki` — Keyword search (BM25)
+- `qmd get <file>` — Fetch single page
+- `qmd status` — Check index health
 
 ### Idempotent Installation
 ```bash

@@ -22,10 +22,10 @@ llm-wiki/
 │   ├── inbox.json              # Candidate queue
 │   └── gaps.json               # Knowledge gaps
 ├── agent_templates/            # Per-agent configs (4 agents)
-│   ├── amp/                    # SKILL.md + AGENTS.snippet.md + config.json
-│   ├── claude/                 # CLAUDE.snippet.md + config.json
-│   ├── opencode/               # AGENTS.snippet.md + config.json
-│   └── cursor/                 # .cursorrules.snippet + config.json
+│   ├── amp/                    # SKILL.md + AGENTS.snippet.md
+│   ├── claude/                 # CLAUDE.snippet.md
+│   ├── opencode/               # AGENTS.snippet.md
+│   └── cursor/                 # .cursorrules.snippet
 ├── plans/                      # Implementation plans and reports
 ├── history/                    # Historical plans
 ├── .obsidian/                  # Obsidian vault settings (plugins, CSS)
@@ -68,7 +68,7 @@ llm-wiki/
 - Collection creation (`wiki/`, `sources/`)
 - Embedding build (`qmd embed`)
 - Agent skill installation (amp, claude, opencode, cursor)
-- MCP config merge (idempotent via markers)
+- Rules snippet injection (idempotent via markers)
 - Update detection (`--check` mode)
 
 **CLI:**
@@ -80,24 +80,20 @@ node init.mjs --check           # detect outdated skills
 ```
 
 ### agent_templates/ (4 agents)
-Per-agent instruction files and MCP configuration snippets. Idempotent injection via `<!-- llm-wiki:start -->` markers.
+Per-agent instruction files. Idempotent injection via `<!-- llm-wiki:start -->` markers.
 
 **Amp:**
 - `SKILL.md` — Full skill description
 - `AGENTS.snippet.md` — Agent instructions
-- `config.json` — Agent tools configuration
 
 **Claude:**
 - `CLAUDE.snippet.md` — Injected into `~/.claude/CLAUDE.md`
-- `config.json` — MCP config for `claude mcp add`
 
 **OpenCode:**
-- `AGENTS.snippet.md` — Merged into opencode.json
-- `config.json` — MCP settings
+- `AGENTS.snippet.md` — Injected into `~/.config/opencode/AGENTS.md`
 
 **Cursor:**
-- `.cursorrules.snippet` — Merged into .cursorrules
-- `config.json` — MCP configuration
+- `.cursorrules.snippet` — Injected into `~/.cursor/.cursorrules`
 
 ### config.example.yaml
 **Discovery configuration template** — copied to `config.yaml` (gitignored).
@@ -134,7 +130,7 @@ outputs/           (durable artifacts: reports, slides)
 Agents read from sources, write to wiki, optionally generate outputs. Humans curate sources and questions.
 
 ### Shared Knowledge Service
-Any project repo can connect via qmd MCP server to:
+Any project repo can connect via qmd CLI to:
 - **Query** — Search wiki pages
 - **Read** — Fetch wiki page content
 - **Write** — Update wiki pages via LLM ingest
@@ -288,7 +284,7 @@ Thresholds tunable in schema.
 
 ## Search & Indexing
 
-**Primary:** qmd MCP server (BM25 + vector search + LLM re-ranking)  
+**Primary:** qmd CLI (BM25 + vector search + LLM re-ranking)  
 **Fallback:** Native file reading and grep/awk if qmd unavailable
 
 **Collections:**

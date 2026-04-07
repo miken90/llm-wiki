@@ -21,7 +21,7 @@
   - [x] Windows, macOS, Linux, WSL support
   - [x] qmd auto-detection and installation
   - [x] Agent skill installation (4 agents)
-  - [x] MCP config merging (idempotent)
+  - [x] Snippet injection (idempotent)
   - [x] Update detection (`--check` mode)
 - [x] Discovery state infrastructure (.discoveries/)
   - [x] history.json (dedup registry)
@@ -147,7 +147,7 @@
 - [ ] Cross-wiki federation
   - [ ] Multiple wiki repos, shared knowledge base
   - [ ] Topic namespacing (wiki1/topic vs wiki2/topic)
-  - [ ] MCP gateway for cross-wiki search
+  - [ ] Search gateway for cross-wiki queries
   - [ ] Artifact dedup across wikis
 - [ ] Analytics & metrics
   - [ ] Contributor metrics (who added which pages)
@@ -168,7 +168,7 @@
 - **None** — Phase 1 & 2 are all-clear
 
 ### Phase 3 Blockers
-- qmd MCP server must be stable (currently verified working)
+- qmd CLI must be stable (currently verified working)
 - Web search API availability (graceful fallback if missing)
 - GitHub API rate limits (will implement caching)
 

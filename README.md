@@ -28,7 +28,7 @@ The wiki is a **persistent, compounding artifact**. Cross-references are already
    │ immutable│ │ maintained│ │ slides)  │
    └──────────┘ └──────────┘ └──────────┘
                       ▲
-                      │ search/read/write via qmd MCP
+                      │ search via qmd CLI
           ┌───────────┼───────────┐
           │           │           │
      ┌────┴───┐ ┌────┴───┐ ┌────┴───┐
@@ -45,7 +45,7 @@ The wiki is a **persistent, compounding artifact**. Cross-references are already
 | Wiki | `wiki/` | LLM agents | Structured, interlinked knowledge pages |
 | Schema | `wiki-schema.md` | Human + LLM | Conventions, operations, rules |
 
-**Shared knowledge service:** This wiki repo is a central knowledge base. Agents working in *other* project repos connect via the qmd MCP server to search, read, and write wiki pages.
+**Shared knowledge service:** This wiki repo is a central knowledge base. Agents working in *other* project repos connect via qmd CLI to search, read, and write wiki pages.
 
 ## Directory Structure
 
@@ -79,7 +79,7 @@ llm-wiki/
 
 - **Git** — version control
 - **Node.js ≥ 22** — required for qmd
-- **qmd** — markdown search engine with MCP server
+- **qmd** — markdown search engine
 - **Obsidian** (optional) — human browsing, graph view
 
 ## Quick Start
@@ -102,7 +102,7 @@ node init.mjs --check --agent amp   # specific agent
 node init.mjs --agent amp           # re-run to update
 ```
 
-The script auto-detects your OS, installs qmd if missing, indexes wiki + sources, builds embeddings, and (with `--agent`) copies the skill file and merges qmd MCP config into the agent's settings.
+The script auto-detects your OS, installs qmd if missing, indexes wiki + sources, builds embeddings, and (with `--agent`) installs the skill file and rules snippet for your agent.
 
 > **WSL + Windows:** Run once on each side. WSL and Windows have separate npm environments and qmd indexes. Example: `node init.mjs --agent amp` on WSL, then `node init.mjs --agent claude` in PowerShell.
 

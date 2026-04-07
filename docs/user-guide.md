@@ -4,7 +4,7 @@ A practical guide to using all wiki operations from your LLM agent.
 
 ## Getting Started
 
-After setup (`node init.mjs --agent <name>`), open your agent in any project repo. The wiki is accessible from anywhere via the qmd MCP server.
+After setup (`node init.mjs --agent <name>`), open your agent in any project repo. The wiki is accessible from anywhere via qmd CLI.
 
 **Quick test:**
 ```
