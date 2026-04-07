@@ -176,10 +176,12 @@ const AGENTS = {
     rulesTarget:  join(HOME, ".config", "amp", "AGENTS.md"),
   },
   claude: {
-    // Claude: inject snippet into existing CLAUDE.md (never overwrite)
-    configPath:   join(HOME, ".claude", "settings.json"),
+    // Claude Code: inject snippet into existing CLAUDE.md (never overwrite)
+    // MCP config lives in ~/.claude.json under projects.<projectPath>.mcpServers
+    configPath:   join(HOME, ".claude.json"),
     configKey:    "mcpServers",
-    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
+    configNested: true,                // uses projects.<path>.mcpServers structure
+    configValue:  { qmd: { type: "stdio", command: "qmd", args: ["mcp"] } },
     rulesSnippet: "agent_templates/claude/CLAUDE.snippet.md",
     rulesTarget:  join(HOME, ".claude", "CLAUDE.md"),
   },
@@ -241,6 +243,15 @@ if (values.check) {
     const configData = readJson(cfg.configPath);
     if (!configData) {
       warn(`${name}: config not found at ${cfg.configPath}`);
+    } else if (cfg.configNested) {
+      // Claude Code: check projects.<path>.mcpServers.qmd
+      const projects = configData.projects || {};
+      const hasQmd = Object.values(projects).some((p) => p?.mcpServers?.qmd);
+      if (hasQmd) {
+        ok(`${name}: MCP config OK`);
+      } else {
+        warn(`${name}: qmd MCP not configured in ${cfg.configPath}`);
+      }
     } else if (!configData[cfg.configKey]?.qmd) {
       warn(`${name}: qmd MCP not configured in ${cfg.configPath}`);
     } else {
@@ -463,7 +474,28 @@ for (const name of agentList) {
     continue;
   }
 
-  if (existing === null) {
+  if (cfg.configNested) {
+    // Claude Code: ~/.claude.json uses projects.<path>.mcpServers structure
+    if (existing === null) {
+      // File doesn't exist — create with user-scope (HOME path as project key)
+      writeJson(cfg.configPath, { projects: { [HOME]: { mcpServers: cfg.configValue } } });
+      ok(`Config → created ${cfg.configPath}`);
+    } else {
+      const projects = existing.projects || {};
+      const projectKey = HOME;
+      const project = projects[projectKey] || {};
+      const servers = project.mcpServers || {};
+      if (servers.qmd) {
+        ok(`Config → qmd already in ${cfg.configPath} (not modified)`);
+      } else {
+        project.mcpServers = { ...servers, ...cfg.configValue };
+        projects[projectKey] = project;
+        existing.projects = projects;
+        writeJson(cfg.configPath, existing);
+        ok(`Config → added qmd to ${cfg.configPath} (user scope: ${projectKey})`);
+      }
+    }
+  } else if (existing === null) {
     // File doesn't exist — create with just qmd
     writeJson(cfg.configPath, { [cfg.configKey]: cfg.configValue });
     ok(`Config → created ${cfg.configPath}`);
