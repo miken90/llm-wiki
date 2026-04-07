@@ -165,7 +165,9 @@ At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As th
 
 ## Operation — Ingest
 
-**Trigger:** "ingest `<source_path>`" or adding a new source to process
+### Ingest a source file
+
+**Trigger:** "ingest `<source_path>`" — source file already exists in `sources/`
 
 **Steps:**
 
@@ -181,6 +183,41 @@ At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As th
 10. Update `wiki/index.md` — add entries with link + one-line summary for each new page
 11. Append to `wiki/log.md`: `## [YYYY-MM-DD] ingest | <source title>`
 12. Report a summary of all changes made
+
+### Ingest a project
+
+**Trigger:** "add `<project>` to wiki", "ingest project at `<path>`"
+
+**Steps:**
+
+1. Scan the project directory — look for:
+   - `README.md`, `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`
+   - Architecture docs, decision records, codebase summaries
+   - Config files that reveal stack (package.json, Cargo.toml, go.mod, etc.)
+2. Present findings to user with a summary table:
+   ```
+   Found N docs in <project>:
+   | File | Size | Content |
+   | docs/architecture.md | 5KB | System architecture overview |
+   | README.md | 3KB | Project overview + setup |
+   ...
+   Which files should I ingest? (all / select by number / skip)
+   ```
+3. User selects which files to ingest
+4. For each selected file:
+   a. Copy to `sources/<project-slug>-<filename>.md` with frontmatter:
+      ```yaml
+      ---
+      title: "<Project> — <Doc Title>"
+      source_url: "local://<project>/<relative-path>"
+      author: <from git or user>
+      date_ingested: <today>
+      format: project-docs
+      ---
+      ```
+   b. Append original content below frontmatter
+5. Run the standard ingest flow (steps 1-12 above) for each copied source
+6. Re-index search if applicable: `qmd update && qmd embed`
 
 **Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.
 
@@ -204,6 +241,54 @@ At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As th
 6. Append to `wiki/log.md`: `## [YYYY-MM-DD] query | <question summary>`
 
 **Key insight:** Good answers should be filed back into the wiki. Explorations compound just like ingested sources do.
+
+---
+
+## Operation — Update
+
+**Trigger:** "update wiki with `<project>` changes", "refresh wiki for `<project>`"
+
+**Steps:**
+
+1. Identify existing sources for this project: search `sources/` for files with matching `source_url` prefix
+2. For each source, read the original project file at `source_url` path
+3. Compare current project state vs wiki pages — look for:
+   - New files in project docs/ that aren't in sources/ yet
+   - Significant changes to already-ingested files (new sections, changed architecture)
+   - Removed or deprecated features still documented in wiki
+4. Present a change summary to user:
+   ```
+   <project> changes detected:
+   | Status | File | What changed |
+   | NEW    | docs/api-v2.md | New API documentation |
+   | CHANGED| README.md | Updated setup instructions |
+   | STALE  | wiki/entities/old-feature.md | Feature removed from project |
+   ...
+   Apply updates? (all / select / skip)
+   ```
+5. User selects which updates to apply
+6. For new files: run "Ingest a project" flow (copy to sources/ + ingest)
+7. For changed files: update the source copy in sources/, then update related wiki pages
+8. For stale wiki pages: mark as deprecated or remove, update index
+9. Re-index: `qmd update && qmd embed`
+10. Append to `wiki/log.md`: `## [YYYY-MM-DD] update | <project> — N new, N changed, N stale`
+
+---
+
+## Organic Growth
+
+During normal work in any project, the agent may discover durable knowledge worth preserving — patterns, decisions, debugging insights, architecture rationale. The agent should proactively write these back to the wiki without waiting for an explicit ingest command.
+
+**When to write back (agent judgment):**
+- A non-obvious bug fix with root cause worth remembering
+- An architecture decision and its rationale
+- A pattern or technique that could apply to other projects
+- A comparison or evaluation that took significant effort
+
+**When NOT to write back:**
+- Project-specific implementation details (belongs in project docs)
+- Temporary workarounds
+- Routine code changes
 
 ---
 

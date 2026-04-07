@@ -8,7 +8,7 @@ description: Query and maintain the shared LLM Wiki knowledge base from any proj
 ## Config
 
 - WIKI_ROOT: {{WIKI_ROOT}}
-- Search: qmd MCP server (must be configured in agent MCP settings)
+- Search: hybrid (qmd MCP for semantic, native tools for keyword/read/write)
 
 ## When to use
 
@@ -16,13 +16,31 @@ description: Query and maintain the shared LLM Wiki knowledge base from any proj
 - When discovering durable knowledge → write back to wiki
 - When asked to "ingest", "query wiki", "lint wiki", "search wiki", "add source"
 
+## Tool Map
+
+All tools work cross-project via absolute paths. WIKI_ROOT = {{WIKI_ROOT}}
+
+| Task | Tool | Example |
+|------|------|---------|
+| Semantic search | `mcp__qmd__query` | `{"searches":[{"type":"vec","query":"..."}]}` |
+| Keyword search | `Grep` | `pattern="...", path="{{WIKI_ROOT}}/wiki/"` |
+| Browse index | `Read` | `path="{{WIKI_ROOT}}/wiki/index.md"` |
+| Read wiki page | `Read` | `path="{{WIKI_ROOT}}/wiki/concepts/foo.md"` |
+| List pages | `glob` | `filePattern="{{WIKI_ROOT}}/wiki/**/*.md"` |
+| Create page | `create_file` | `path="{{WIKI_ROOT}}/wiki/entities/foo.md"` |
+| Update page | `edit_file` | `path="{{WIKI_ROOT}}/wiki/entities/foo.md"` |
+
+**Do NOT use** `mcp__qmd__get` or `mcp__qmd__multi_get` — returns unsupported content type in some agents.
+
 ## Workflow
 
-1. Search wiki via qmd MCP: `query "your search terms"`
-2. Read matched wiki pages for context
+1. Search: `mcp__qmd__query` for semantic, `Grep` for exact terms
+2. Read: native file-read tool with full absolute path (prepend WIKI_ROOT to relative paths from qmd results)
 3. Apply knowledge to current project task
-4. If new durable knowledge discovered → create/update wiki pages
-5. Follow {{WIKI_ROOT}}/wiki-schema.md for all conventions
+4. Write back: native file-create/edit tools with absolute path to WIKI_ROOT
+5. Update index: edit {{WIKI_ROOT}}/wiki/index.md
+6. Update log: append to {{WIKI_ROOT}}/wiki/log.md
+7. Follow {{WIKI_ROOT}}/wiki-schema.md for all conventions
 
 ## Write Rules
 
@@ -35,6 +53,9 @@ description: Query and maintain the shared LLM Wiki knowledge base from any proj
 
 ## Operations
 
-- **Ingest**: Read wiki-schema.md "Operation — Ingest" section, follow steps
-- **Query**: Search via qmd, read pages, synthesize answer with [[citations]]
+- **Ingest source**: "ingest `<source_path>`" — source already in sources/
+- **Ingest project**: "add `<project>` to wiki" or "ingest project at `<path>`" — agent scans project, presents docs found, user selects, agent copies to sources/ + ingests
+- **Query**: Search via qmd + keyword search, read pages, synthesize answer with [[citations]]
 - **Lint**: Read wiki-schema.md "Operation — Lint" section, follow steps
+
+For all operations, read wiki-schema.md for detailed steps.

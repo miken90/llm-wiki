@@ -86,11 +86,29 @@ node init.mjs
 # qmd + install agent skill (amp, claude, opencode, cursor)
 node init.mjs --agent amp
 node init.mjs --agent amp,claude    # multiple agents
+
+# check if installed skills are up to date
+node init.mjs --check               # all agents
+node init.mjs --check --agent amp   # specific agent
+
+# update outdated skills
+node init.mjs --agent amp           # re-run to update
 ```
 
 The script auto-detects your OS, installs qmd if missing, indexes wiki + sources, builds embeddings, and (with `--agent`) copies the skill file and merges qmd MCP config into the agent's settings.
 
-> **WSL + Windows:** Run once on each side. WSL and Windows have separate npm environments and qmd indexes. Example: `./init.mjs --agent amp` on WSL, then `node init.mjs --agent claude` in PowerShell.
+> **WSL + Windows:** Run once on each side. WSL and Windows have separate npm environments and qmd indexes. Example: `node init.mjs --agent amp` on WSL, then `node init.mjs --agent claude` in PowerShell.
+
+### Keeping Skills Updated
+
+When templates in `agent_templates/` are updated (new operations, bug fixes), installed skill files become outdated. Run `--check` to detect and `--agent` to update:
+
+```bash
+$ node init.mjs --check
+⚠ amp: outdated — run: node init.mjs --agent amp
+✓ claude: up to date
+⚠ cursor: not installed — run: node init.mjs --agent cursor
+```
 
 ### Verify
 

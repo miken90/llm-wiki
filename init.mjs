@@ -28,6 +28,7 @@ const IS_WIN = platform() === "win32";
 const { values } = parseArgs({
   options: {
     agent: { type: "string", short: "a", default: "" },
+    check: { type: "boolean", short: "c", default: false },
     help:  { type: "boolean", short: "h", default: false },
   },
   strict: true,
@@ -35,15 +36,18 @@ const { values } = parseArgs({
 
 if (values.help) {
   console.log(`
-Usage: node init.mjs [--agent <amp,claude,opencode,cursor>]
+Usage: node init.mjs [--agent <amp,claude,opencode,cursor>] [--check]
 
 Without --agent: sets up qmd collections and embeddings
 With --agent:    also installs skill file + MCP config for specified agent(s)
+With --check:    compare installed skill files vs repo templates, show update status
 
 Examples:
   node init.mjs                        # qmd only
   node init.mjs --agent amp            # qmd + Amp skill
   node init.mjs --agent amp,claude     # qmd + Amp + Claude
+  node init.mjs --check                # check all agents for updates
+  node init.mjs --check --agent amp    # check specific agent
 `);
   process.exit(0);
 }
@@ -60,6 +64,40 @@ const C = {
 function ok(msg)   { console.log(`${C.green("✓")} ${msg}`); }
 function warn(msg) { console.log(`${C.yellow("⚠")} ${msg}`); }
 function err(msg)  { console.log(`${C.red("✗")} ${msg}`); }
+
+/**
+ * Resolve the qmd command. On Windows, npm shims can be broken
+ * (referencing /bin/sh), so we resolve the actual binary path
+ * and run via node directly.
+ */
+let QMD_CMD = "qmd";
+
+function resolveQmd() {
+  // Try direct command first
+  if (run("qmd --help")) { QMD_CMD = "qmd"; return true; }
+
+  // Resolve via npm global root → actual JS entry point
+  const npmRoot = run("npm root -g");
+  if (!npmRoot) return false;
+
+  const qmdJs = join(npmRoot, "@tobilu", "qmd", "dist", "cli", "qmd.js");
+  if (!existsSync(qmdJs)) return false;
+
+  // Verify it works via node
+  if (run(`node "${qmdJs}" --help`)) {
+    QMD_CMD = `node "${qmdJs}"`;
+    return true;
+  }
+  return false;
+}
+
+function qmd(args) {
+  return run(`${QMD_CMD} ${args}`);
+}
+
+function qmdLoud(args) {
+  runLoud(`${QMD_CMD} ${args}`);
+}
 
 function run(cmd, opts = {}) {
   try {
@@ -89,42 +127,156 @@ function writeJson(filePath, data) {
   writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8");
 }
 
+/**
+ * Inject or update a snippet between marker comments in a target file.
+ * Markers: <!-- llm-wiki:start --> ... <!-- llm-wiki:end -->
+ */
+function injectSnippet(targetPath, snippetContent) {
+  const startMarker = "<!-- llm-wiki:start -->";
+  const endMarker = "<!-- llm-wiki:end -->";
+
+  if (!existsSync(targetPath)) {
+    // File doesn't exist — append snippet
+    mkdirSync(dirname(targetPath), { recursive: true });
+    writeFileSync(targetPath, snippetContent, "utf-8");
+    return "created";
+  }
+
+  const existing = readFileSync(targetPath, "utf-8");
+  const startIdx = existing.indexOf(startMarker);
+  const endIdx = existing.indexOf(endMarker);
+
+  if (startIdx !== -1 && endIdx !== -1) {
+    // Replace existing snippet
+    const before = existing.slice(0, startIdx);
+    const after = existing.slice(endIdx + endMarker.length);
+    const updated = before + snippetContent.trim() + after;
+    if (updated === existing) return "up-to-date";
+    writeFileSync(targetPath, updated, "utf-8");
+    return "updated";
+  }
+
+  // No markers found — append at end
+  writeFileSync(targetPath, existing.trimEnd() + "\n\n" + snippetContent, "utf-8");
+  return "injected";
+}
+
 // ── Agent Definitions ───────────────────────────────────────────────
 
 const AGENTS = {
   amp: {
-    template:    "agent_templates/amp/SKILL.md",
-    destDir:     join(HOME, ".config", "amp", "skills", "llm-wiki"),
-    destFile:    "SKILL.md",
-    configPath:  join(HOME, ".config", "amp", "settings.json"),
-    configKey:   "mcpServers",
-    configValue: { qmd: { command: "qmd", args: ["mcp"] } },
+    // Amp has both: SKILL.md (on-demand) + AGENTS.snippet.md (always-on rules)
+    template:     "agent_templates/amp/SKILL.md",
+    destDir:      join(HOME, ".config", "amp", "skills", "llm-wiki"),
+    destFile:     "SKILL.md",
+    configPath:   join(HOME, ".config", "amp", "settings.json"),
+    configKey:    "mcpServers",
+    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
+    rulesSnippet: "agent_templates/amp/AGENTS.snippet.md",
+    rulesTarget:  join(HOME, ".config", "amp", "AGENTS.md"),
   },
   claude: {
-    template:    "agent_templates/claude/CLAUDE.md",
-    destDir:     join(HOME, ".claude"),
-    destFile:    "CLAUDE.md",
-    configPath:  join(HOME, ".claude", "settings.json"),
-    configKey:   "mcpServers",
-    configValue: { qmd: { command: "qmd", args: ["mcp"] } },
+    // Claude: inject snippet into existing CLAUDE.md (never overwrite)
+    configPath:   join(HOME, ".claude", "settings.json"),
+    configKey:    "mcpServers",
+    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
+    rulesSnippet: "agent_templates/claude/CLAUDE.snippet.md",
+    rulesTarget:  join(HOME, ".claude", "CLAUDE.md"),
   },
   opencode: {
-    template:    "agent_templates/opencode/AGENTS.md",
-    destDir:     join(HOME, ".config", "opencode"),
-    destFile:    "AGENTS.md",
-    configPath:  join(HOME, ".config", "opencode", "opencode.json"),
-    configKey:   "mcp",
-    configValue: { qmd: { type: "local", command: ["qmd", "mcp"] } },
+    configPath:   join(HOME, ".config", "opencode", "opencode.json"),
+    configKey:    "mcp",
+    configValue:  { qmd: { type: "local", command: ["qmd", "mcp"] } },
+    rulesSnippet: "agent_templates/opencode/AGENTS.snippet.md",
+    rulesTarget:  join(HOME, ".config", "opencode", "AGENTS.md"),
   },
   cursor: {
-    template:    "agent_templates/cursor/.cursorrules",
-    destDir:     join(HOME, ".cursor"),
-    destFile:    ".cursorrules",
-    configPath:  join(HOME, ".cursor", "mcp.json"),
-    configKey:   "mcpServers",
-    configValue: { qmd: { command: "qmd", args: ["mcp"] } },
+    configPath:   join(HOME, ".cursor", "mcp.json"),
+    configKey:    "mcpServers",
+    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
+    rulesSnippet: "agent_templates/cursor/.cursorrules.snippet",
+    rulesTarget:  join(HOME, ".cursor", ".cursorrules"),
   },
 };
+
+// ── Check Mode ──────────────────────────────────────────────────────
+
+if (values.check) {
+  console.log(C.cyan("\n=== LLM Wiki — Check Installed Agents ===\n"));
+
+  const checkList = values.agent
+    ? values.agent.split(",").map((s) => s.trim().toLowerCase())
+    : Object.keys(AGENTS);
+
+  let hasUpdates = false;
+
+  for (const name of checkList) {
+    const cfg = AGENTS[name];
+    if (!cfg) { err(`Unknown agent: ${name}`); continue; }
+
+    // Check skill file (Amp only)
+    if (cfg.template) {
+      const installedPath = join(cfg.destDir, cfg.destFile);
+      const templatePath = join(WIKI_ROOT, cfg.template);
+
+      if (!existsSync(templatePath)) {
+        err(`${name}: template missing at ${templatePath}`);
+      } else if (!existsSync(installedPath)) {
+        warn(`${name}: skill not installed — run: node init.mjs --agent ${name}`);
+        hasUpdates = true;
+      } else {
+        const templateContent = readFileSync(templatePath, "utf-8")
+          .replace(/\{\{WIKI_ROOT\}\}/g, WIKI_ROOT);
+        const installedContent = readFileSync(installedPath, "utf-8");
+        if (installedContent === templateContent) {
+          ok(`${name}: skill up to date`);
+        } else {
+          warn(`${name}: skill outdated — run: node init.mjs --agent ${name}`);
+          hasUpdates = true;
+        }
+      }
+    }
+
+    // Check MCP config
+    const configData = readJson(cfg.configPath);
+    if (!configData) {
+      warn(`${name}: config not found at ${cfg.configPath}`);
+    } else if (!configData[cfg.configKey]?.qmd) {
+      warn(`${name}: qmd MCP not configured in ${cfg.configPath}`);
+    } else {
+      ok(`${name}: MCP config OK`);
+    }
+
+    // Check rules snippet
+    if (cfg.rulesSnippet) {
+      const snippetPath = join(WIKI_ROOT, cfg.rulesSnippet);
+      if (existsSync(snippetPath) && existsSync(cfg.rulesTarget)) {
+        const snippetContent = readFileSync(snippetPath, "utf-8")
+          .replace(/\{\{WIKI_ROOT\}\}/g, WIKI_ROOT).trim();
+        const targetContent = readFileSync(cfg.rulesTarget, "utf-8");
+        if (targetContent.includes("<!-- llm-wiki:start -->") && targetContent.includes(snippetContent.split("\n").slice(1, -1).join("\n").trim())) {
+          ok(`${name}: rules up to date (${cfg.rulesTarget})`);
+        } else if (targetContent.includes("<!-- llm-wiki:start -->")) {
+          warn(`${name}: rules outdated in ${cfg.rulesTarget}`);
+          hasUpdates = true;
+        } else {
+          warn(`${name}: rules not injected in ${cfg.rulesTarget}`);
+          hasUpdates = true;
+        }
+      } else if (existsSync(snippetPath) && !existsSync(cfg.rulesTarget)) {
+        warn(`${name}: rules target missing (${cfg.rulesTarget})`);
+      }
+    }
+  }
+
+  console.log();
+  if (hasUpdates) {
+    console.log(`Run ${C.cyan("node init.mjs --agent <agents>")} to update.\n`);
+  } else {
+    ok("All agents up to date.\n");
+  }
+  process.exit(0);
+}
 
 // ── Step 1: Prerequisites ───────────────────────────────────────────
 
@@ -139,20 +291,20 @@ ok(`Node.js ${nodeVer}`);
 
 // ── Step 2: qmd ─────────────────────────────────────────────────────
 
-let hasQmd = !!run("qmd --help");
+let hasQmd = resolveQmd();
 if (!hasQmd) {
   warn("qmd not found — installing...");
   runLoud("npm install -g @tobilu/qmd");
-  hasQmd = !!run("qmd --help");
-  if (!hasQmd) { err("qmd install failed"); process.exit(1); }
+  hasQmd = resolveQmd();
+  if (!hasQmd) { err("qmd install failed — try: npm install -g @tobilu/qmd"); process.exit(1); }
 }
-ok("qmd installed");
+ok(`qmd installed (${QMD_CMD.startsWith("node") ? "via node fallback" : "native"})`);
 
 // ── Step 3: Collections ─────────────────────────────────────────────
 
 console.log(C.cyan("\n--- qmd collections ---"));
 
-const status = run("qmd status") || "";
+const status = qmd("status") || "";
 
 const wikiDir = join(WIKI_ROOT, "wiki") + (IS_WIN ? "\\" : "/");
 const sourcesDir = join(WIKI_ROOT, "sources") + (IS_WIN ? "\\" : "/");
@@ -160,30 +312,30 @@ const sourcesDir = join(WIKI_ROOT, "sources") + (IS_WIN ? "\\" : "/");
 if (status.includes("wiki")) {
   warn("Collection 'wiki' exists — skipping");
 } else {
-  runLoud(`qmd collection add "${wikiDir}" --name wiki`);
+  qmdLoud(`collection add "${wikiDir}" --name wiki`);
   ok("Collection 'wiki' added");
 }
 
 if (status.includes("sources")) {
   warn("Collection 'sources' exists — skipping");
 } else {
-  runLoud(`qmd collection add "${sourcesDir}" --name sources`);
+  qmdLoud(`collection add "${sourcesDir}" --name sources`);
   ok("Collection 'sources' added");
 }
 
-run('qmd context add qmd://wiki "LLM-maintained knowledge base"');
-run('qmd context add qmd://sources "Raw source documents"');
+qmd('context add qmd://wiki "LLM-maintained knowledge base"');
+qmd('context add qmd://sources "Raw source documents"');
 ok("Contexts attached");
 
 // ── Step 4: Embeddings ──────────────────────────────────────────────
 
 console.log(C.cyan("\n--- Embeddings ---"));
-runLoud("qmd embed");
+qmdLoud("embed");
 ok("Embeddings built");
 
 // ── Step 5: Verify ──────────────────────────────────────────────────
 
-const searchResult = run('qmd search "wiki" -n 1');
+const searchResult = qmd('search "wiki" -n 1');
 if (searchResult) {
   ok("Search verified — results returned");
 } else {
@@ -208,21 +360,36 @@ for (const name of agentList) {
 
   console.log(C.cyan(`\n--- ${name} ---`));
 
-  // Copy skill file
-  const srcPath = join(WIKI_ROOT, cfg.template);
-  if (!existsSync(srcPath)) {
-    err(`Template not found: ${srcPath}`);
-    continue;
+  // 1. Copy skill file (Amp only — has separate SKILL.md)
+  if (cfg.template) {
+    const srcPath = join(WIKI_ROOT, cfg.template);
+    if (!existsSync(srcPath)) {
+      err(`Template not found: ${srcPath}`);
+      continue;
+    }
+    const content = readFileSync(srcPath, "utf-8")
+      .replace(/\{\{WIKI_ROOT\}\}/g, WIKI_ROOT);
+    mkdirSync(cfg.destDir, { recursive: true });
+    writeFileSync(join(cfg.destDir, cfg.destFile), content, "utf-8");
+    ok(`Skill → ${join(cfg.destDir, cfg.destFile)}`);
   }
 
-  const content = readFileSync(srcPath, "utf-8")
-    .replace(/\{\{WIKI_ROOT\}\}/g, WIKI_ROOT);
+  // 2. Inject rules snippet (all agents — never overwrites existing content)
+  if (cfg.rulesSnippet) {
+    const snippetPath = join(WIKI_ROOT, cfg.rulesSnippet);
+    if (existsSync(snippetPath)) {
+      const snippetContent = readFileSync(snippetPath, "utf-8")
+        .replace(/\{\{WIKI_ROOT\}\}/g, WIKI_ROOT);
+      const result = injectSnippet(cfg.rulesTarget, snippetContent);
+      if (result === "up-to-date") {
+        ok(`Rules → ${cfg.rulesTarget} (already up to date)`);
+      } else {
+        ok(`Rules → ${result} in ${cfg.rulesTarget}`);
+      }
+    }
+  }
 
-  mkdirSync(cfg.destDir, { recursive: true });
-  writeFileSync(join(cfg.destDir, cfg.destFile), content, "utf-8");
-  ok(`Skill → ${join(cfg.destDir, cfg.destFile)}`);
-
-  // Merge MCP config
+  // 3. Merge MCP config — only ADD qmd entry, never remove existing entries
   const existing = readJson(cfg.configPath);
 
   if (existing === undefined) {
@@ -231,17 +398,21 @@ for (const name of agentList) {
     continue;
   }
 
-  const base = existing || {};
-  const prev = base[cfg.configKey] || {};
-  base[cfg.configKey] = { ...prev, ...cfg.configValue };
-  writeJson(cfg.configPath, base);
-
   if (existing === null) {
+    // File doesn't exist — create with just qmd
+    writeJson(cfg.configPath, { [cfg.configKey]: cfg.configValue });
     ok(`Config → created ${cfg.configPath}`);
-  } else if (prev.qmd) {
-    warn(`Config → updated qmd in ${cfg.configPath} (was already present)`);
   } else {
-    ok(`Config → merged qmd into ${cfg.configPath}`);
+    // File exists — check if qmd already configured
+    const section = existing[cfg.configKey];
+    if (section?.qmd) {
+      ok(`Config → qmd already in ${cfg.configPath} (not modified)`);
+    } else {
+      // Add qmd to existing section, preserve everything else
+      existing[cfg.configKey] = { ...(section || {}), ...cfg.configValue };
+      writeJson(cfg.configPath, existing);
+      ok(`Config → added qmd to ${cfg.configPath}`);
+    }
   }
 }
 
