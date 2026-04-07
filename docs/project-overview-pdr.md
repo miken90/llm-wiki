@@ -176,7 +176,7 @@ The wiki repo is a central knowledge base. Agents in other project repos access 
 ### Phase 2: Content & UX (In Progress)
 - [x] Obsidian setup guide
 - [x] Plugin recommendations (Dataview, Git, Marp)
-- [x] Initial wiki content (TablePro project)
+- [x] Initial wiki content ingested
 - [ ] Query output formats (markdown, tables, slides, charts)
 - [ ] Interactive dashboard (status page)
 - [ ] Knowledge gap suggestions

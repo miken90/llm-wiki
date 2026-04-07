@@ -69,7 +69,7 @@ aliases: [Alternative Name]
 - [ ] Links to related concepts and decisions
 - [ ] Source citations
 
-**Example:** TablePro — desktop database client with drivers for 6 database systems.
+**Example:** A desktop app — its product page, architecture overview, and key decisions.
 
 ### Concept Pages (`wiki/concepts/`)
 **Purpose:** Ideas, frameworks, patterns, techniques.
@@ -148,7 +148,7 @@ aliases: [Alternative Name]
 
 **Example:**
 ```markdown
-- [[TablePro]] — Desktop database client with 6 drivers (16 sources)
+- [[My Product]] — Desktop app with N drivers (M sources)
 - [[Plugin Architecture FFI]] — DLL loading with ABI handshake (1 source)
 ```
 

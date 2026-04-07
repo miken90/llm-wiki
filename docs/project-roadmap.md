@@ -58,11 +58,8 @@
   - [x] Dataview (dynamic tables)
   - [x] Obsidian Git (auto-sync)
   - [x] Marp Slides (presentations)
-- [x] Initial wiki content (TablePro project)
-  - [x] 1 entity page (TablePro)
-  - [x] 9 concept pages
-  - [x] 2 summary pages
-  - [x] 2 decision pages
+- [x] Initial wiki content ingested
+  - [x] Entity, concept, summary, decision pages
   - [x] wiki/index.md auto-maintained
   - [x] wiki/log.md operations log
 

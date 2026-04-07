@@ -7,15 +7,15 @@ llm-wiki/
 ├── sources/                    # Raw source documents (immutable)
 │   ├── articles/               # Auto-discovered web articles
 │   ├── assets/                 # Downloaded images and attachments
-│   └── *.md                    # Manually added sources (mostly TablePro)
-├── wiki/                       # LLM-maintained knowledge pages (~16 pages)
+│   └── *.md                    # Manually added sources
+├── wiki/                       # LLM-maintained knowledge pages
 │   ├── index.md                # Auto-maintained page catalog
 │   ├── log.md                  # Append-only operations log
-│   ├── entities/               # People, orgs, products (1 page: TablePro)
-│   ├── concepts/               # Ideas, frameworks (9 pages)
-│   ├── summaries/              # Per-source summaries (2 pages)
-│   ├── syntheses/              # Cross-source analysis (empty)
-│   └── decisions/              # Decision records (2 pages)
+│   ├── entities/               # People, orgs, products
+│   ├── concepts/               # Ideas, frameworks, patterns
+│   ├── summaries/              # Per-source summaries
+│   ├── syntheses/              # Cross-source analysis
+│   └── decisions/              # Decision records
 ├── outputs/                    # Durable artifacts (reports, slides)
 ├── .discoveries/               # Discovery state (gitignored)
 │   ├── history.json            # Processed URL registry
@@ -34,10 +34,8 @@ llm-wiki/
 ├── wiki-schema.md              # 566 LOC — Source of truth
 ├── init.mjs                    # 500 LOC — Setup script
 ├── README.md                   # 277 LOC — Project overview
-└── docs/                       # This documentation (new)
+└── docs/                       # This documentation
 ```
-
-**Total lines of code:** ~8,700 LOC (excluding node_modules, .obsidian plugins, .git, .claude session state)
 
 ## Key Files
 
@@ -112,30 +110,8 @@ Per-agent instruction files and MCP configuration snippets. Idempotent injection
 
 **Graceful degradation:** All sections optional. Missing config → operations degrade (skip unavailable strategies).
 
-### wiki/ (16 pages)
-Current content focuses on **TablePro** project (desktop database client).
-
-**Entities (1):**
-- TablePro — Windows (Tauri + React) + macOS (SwiftUI)
-
-**Concepts (9):**
-- Plugin Architecture FFI
-- Session-Based Connection
-- TablePro Command Registry
-- TablePro Driver Capabilities
-- TablePro macOS Architecture
-- TablePro Notification Refactor
-- TablePro Plugin System
-- TablePro Windows Architecture
-- Tauri Desktop Architecture
-
-**Summaries (2):**
-- TablePro — Project Overview Summary
-- TablePro Summary
-
-**Decisions (2):**
-- TablePro Driver Capability Substrate
-- TablePro Windows Port Decisions
+### wiki/
+Wiki pages are LLM-maintained and organized by page type. Content varies based on what has been ingested. See `wiki/index.md` for current catalog.
 
 ### .discoveries/ (Runtime state)
 **JSON files tracking discovery lifecycle:**
@@ -325,5 +301,5 @@ Thresholds tunable in schema.
 
 ---
 
-**Document status:** Foundation complete; current content focused on TablePro project.  
+**Document status:** Foundation complete.  
 **Last updated:** 2026-04-07

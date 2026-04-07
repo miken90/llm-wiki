@@ -463,8 +463,8 @@ novelty          = 1.0 if <0.6 semantic similarity, 0.5 if 0.6-0.9, 0.1 if >0.9
 ## Scalability Considerations
 
 ### Current Scale
-- ~16 wiki pages
-- ~17 sources
+- Wiki pages grow with each ingest
+- Sources accumulate over time
 - <100 KB total wiki content
 - qmd indexes both wiki and sources
 
