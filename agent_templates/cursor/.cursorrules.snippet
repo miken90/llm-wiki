@@ -16,13 +16,11 @@ Tool Map (absolute paths, work cross-project):
 - Read/write wiki pages: native tools with WIKI_ROOT prefix
 - Do NOT use qmd get or multi_get — unsupported content type
 
-Operations:
-- Ingest source: "ingest <path>"
-- Ingest project: "add <project> to wiki"
-- Update project: "update wiki with <project> changes"
-- Query: search → read → synthesize with [[citations]]
-- Lint: "lint wiki"
-- Organic: proactively write durable knowledge during normal work
+Operations: ingest, query, lint, discover, run, status
+- discover: search web/feeds/GitHub → queue candidates to inbox
+- run: discover → approve → ingest → lint (max 2 rounds)
+- status: page counts, health, capabilities
 
-For detailed steps, read WIKI_ROOT/wiki-schema.md.
+Read WIKI_ROOT/wiki-schema.md for steps. Config: WIKI_ROOT/config.yaml
+Skip web strategies if web tools unavailable.
 <!-- llm-wiki:end -->

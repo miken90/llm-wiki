@@ -11,7 +11,7 @@
  *   node init.mjs --agent amp,claude     # qmd + multiple agents
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { homedir, platform } from "os";
 import { execSync } from "child_process";
@@ -340,6 +340,71 @@ if (searchResult) {
   ok("Search verified — results returned");
 } else {
   warn("Search returned no results (wiki may be empty)");
+}
+
+// ── Step 5b: Discovery Bootstrap ────────────────────────────────────
+
+console.log(C.cyan("\n--- Discovery ---"));
+
+// config.yaml
+const configSrc = join(WIKI_ROOT, "config.example.yaml");
+const configDst = join(WIKI_ROOT, "config.yaml");
+if (existsSync(configDst)) {
+  ok("config.yaml exists (not modified)");
+} else if (existsSync(configSrc)) {
+  copyFileSync(configSrc, configDst);
+  ok("config.yaml → created from config.example.yaml");
+} else {
+  warn("config.example.yaml not found — skip config bootstrap");
+}
+
+// .discoveries/
+const discDir = join(WIKI_ROOT, ".discoveries");
+mkdirSync(discDir, { recursive: true });
+
+const emptyState = {
+  "history.json": { version: 1, entries: [] },
+  "inbox.json": { version: 1, candidates: [] },
+  "gaps.json": { version: 1, updated_at: null, gaps: [] },
+};
+
+for (const [file, defaultContent] of Object.entries(emptyState)) {
+  const filePath = join(discDir, file);
+  if (existsSync(filePath)) {
+    ok(`.discoveries/${file} exists (not modified)`);
+  } else {
+    writeJson(filePath, defaultContent);
+    ok(`.discoveries/${file} → created`);
+  }
+}
+
+// sources/articles/
+const articlesDir = join(WIKI_ROOT, "sources", "articles");
+mkdirSync(articlesDir, { recursive: true });
+ok("sources/articles/ ready");
+
+// .gitignore update
+const gitignorePath = join(WIKI_ROOT, ".gitignore");
+const ignoreEntries = [".discoveries/*.json", "config.yaml"];
+
+if (existsSync(gitignorePath)) {
+  let content = readFileSync(gitignorePath, "utf-8");
+  const added = [];
+  for (const entry of ignoreEntries) {
+    if (!content.includes(entry)) {
+      content += `\n${entry}`;
+      added.push(entry);
+    }
+  }
+  if (added.length) {
+    writeFileSync(gitignorePath, content.trimEnd() + "\n", "utf-8");
+    ok(`.gitignore → added: ${added.join(", ")}`);
+  } else {
+    ok(".gitignore already up to date");
+  }
+} else {
+  writeFileSync(gitignorePath, ignoreEntries.join("\n") + "\n", "utf-8");
+  ok(".gitignore → created");
 }
 
 // ── Step 6: Agent Setup ─────────────────────────────────────────────

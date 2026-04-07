@@ -7,4 +7,9 @@
 3. **Use cocoindex semantic search** — find relevant code chunks (*"what, where"*)
 4. **Read full files** — only when need complete context
 5. **Scout** — only when docs missing or stale
+
+### Discovery Operations
+- `discover` — find new sources → queue to inbox. Load `llm-wiki` skill first.
+- `run` — full cycle: discover → approve → ingest → lint
+- `status` — wiki health dashboard
 <!-- llm-wiki:end -->

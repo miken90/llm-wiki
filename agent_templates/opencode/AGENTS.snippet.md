@@ -22,7 +22,19 @@
 - **Update project**: "update wiki with `<project>` changes" — diff vs sources, update
 - **Query**: search wiki → read pages → synthesize answer with [[citations]]
 - **Lint**: "lint wiki" — orphans, broken links, stale claims, gaps
+- **Discover**: "discover" → search web/feeds/GitHub → queue candidates to inbox
+- **Run**: "run" → discover → approve → ingest → lint (max 2 rounds)
+- **Status**: "status" → page counts, health, capabilities
 - **Organic**: proactively write durable knowledge during normal work
 
-For detailed steps, read {{WIKI_ROOT}}/wiki-schema.md.
+Read {{WIKI_ROOT}}/wiki-schema.md for detailed steps. Config: {{WIKI_ROOT}}/config.yaml
+
+### Capability Map
+| Capability | Tool |
+|------------|------|
+| web_search | web_search (if available) |
+| http_fetch | read_web_page (if available) |
+| qmd_query | qmd MCP `query` |
+
+Skip unavailable strategies, don't fail.
 <!-- llm-wiki:end -->

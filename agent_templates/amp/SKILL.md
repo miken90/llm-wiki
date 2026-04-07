@@ -1,6 +1,6 @@
 ---
 name: llm-wiki
-description: Query and maintain the shared LLM Wiki knowledge base from any project. Use when researching topics, before non-trivial work, or when discovering durable knowledge worth preserving. Trigger phrases - "search wiki", "query wiki", "ingest", "lint wiki", "add source", "wiki".
+description: Query and maintain the shared LLM Wiki knowledge base from any project. Use when researching topics, before non-trivial work, or when discovering durable knowledge worth preserving. Trigger phrases - "search wiki", "query wiki", "ingest", "lint wiki", "add source", "wiki", "discover", "run", "status".
 ---
 
 # LLM Wiki
@@ -57,5 +57,31 @@ All tools work cross-project via absolute paths. WIKI_ROOT = {{WIKI_ROOT}}
 - **Ingest project**: "add `<project>` to wiki" or "ingest project at `<path>`" — agent scans project, presents docs found, user selects, agent copies to sources/ + ingests
 - **Query**: Search via qmd + keyword search, read pages, synthesize answer with [[citations]]
 - **Lint**: Read wiki-schema.md "Operation — Lint" section, follow steps
+
+## Discovery Operations
+
+- **Discover**: "discover" or "find new sources" — search web/feeds/GitHub, queue to inbox
+- **Run**: "run" or "run full cycle" — discover → approve → ingest → lint (max 2 rounds)
+- **Status**: "status" or "wiki status" — page counts, health, capabilities
+
+For detailed steps, read wiki-schema.md Discovery/Run/Status sections.
+
+### Discovery Capability Map
+
+| Capability | Tool |
+|------------|------|
+| web_search | `mcp__exa__web_search_exa` |
+| http_fetch | `mcp__exa__crawling_exa` |
+| file_read | `Read` |
+| file_write | `create_file` / `edit_file` |
+| qmd_query | `mcp__qmd__query` |
+
+If a capability is unavailable, skip that strategy and continue. Report degraded mode in status.
+
+### Discovery Paths
+
+- Config: {{WIKI_ROOT}}/config.yaml
+- State: {{WIKI_ROOT}}/.discoveries/
+- Sources: {{WIKI_ROOT}}/sources/articles/
 
 For all operations, read wiki-schema.md for detailed steps.
