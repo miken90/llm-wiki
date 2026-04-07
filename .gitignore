@@ -38,6 +38,7 @@ outputs/*
 
 # Plans and internal tooling
 plans/
+history/
 .claude/
 .team/
 
