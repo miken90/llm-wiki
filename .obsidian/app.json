@@ -13,6 +13,8 @@
     "agent_templates/",
     ".team/",
     ".claude/",
-    "README.md"
+    "README.md",
+    "history/",
+    "docs/"
   ]
 }
