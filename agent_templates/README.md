@@ -1,6 +1,6 @@
 # Agent Templates
 
-Copy the appropriate instruction file and MCP config to connect your LLM agent to this wiki from any project.
+Instruction files to connect your LLM agent to this wiki from any project.
 
 ## Prerequisites
 
@@ -26,12 +26,12 @@ Replace `{{WIKI_ROOT}}` with the absolute path to this wiki repo (e.g., `/mnt/d/
 
 Use `node init.mjs --agent <name>` (recommended) or follow manual steps below.
 
-| Agent | What gets installed | MCP config |
-|-------|---------------------|------------|
-| **Amp** | `SKILL.md` → `~/.config/amp/skills/llm-wiki/` + snippet → `~/.config/amp/AGENTS.md` | `~/.config/amp/settings.json` |
-| **Claude Code** | snippet → `~/.claude/CLAUDE.md` | `~/.claude.json` (user scope) or `claude mcp add` |
-| **OpenCode** | snippet → `~/.config/opencode/AGENTS.md` | `~/.config/opencode/opencode.json` |
-| **Cursor** | snippet → `~/.cursor/.cursorrules` | `~/.cursor/mcp.json` |
+| Agent | What gets installed |
+|-------|---------------------|
+| **Amp** | `SKILL.md` → `~/.config/amp/skills/llm-wiki/` + snippet → `~/.config/amp/AGENTS.md` |
+| **Claude Code** | snippet → `~/.claude/CLAUDE.md` |
+| **OpenCode** | snippet → `~/.config/opencode/AGENTS.md` |
+| **Cursor** | snippet → `~/.cursor/.cursorrules` |
 
 ### Steps
 
@@ -53,7 +53,6 @@ Each agent directory contains:
 | File | Purpose |
 |------|---------|
 | Snippet file (`.snippet.md` / `.snippet`) | Wiki instructions injected between `<!-- llm-wiki:start/end -->` markers |
-| `config.json` | qmd MCP server config in the agent's native format |
 | `SKILL.md` (Amp only) | Full skill file copied to `~/.config/amp/skills/llm-wiki/` |
 
 All snippet files reference `wiki-schema.md` as the source of truth — they do not duplicate rules.

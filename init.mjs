@@ -39,7 +39,7 @@ if (values.help) {
 Usage: node init.mjs [--agent <amp,claude,opencode,cursor>] [--check]
 
 Without --agent: sets up qmd collections and embeddings
-With --agent:    also installs skill file + MCP config for specified agent(s)
+With --agent:    also installs skill file + rules snippet for specified agent(s)
 With --check:    compare installed skill files vs repo templates, show update status
 
 Examples:
@@ -111,17 +111,6 @@ function runLoud(cmd) {
   execSync(cmd, { encoding: "utf-8", stdio: "inherit" });
 }
 
-function readJson(filePath) {
-  if (!existsSync(filePath)) return null;
-  try {
-    const raw = readFileSync(filePath, "utf-8").trim();
-    if (!raw) return {};
-    return JSON.parse(raw);
-  } catch {
-    return undefined; // malformed
-  }
-}
-
 function writeJson(filePath, data) {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8");
@@ -169,33 +158,18 @@ const AGENTS = {
     template:     "agent_templates/amp/SKILL.md",
     destDir:      join(HOME, ".config", "amp", "skills", "llm-wiki"),
     destFile:     "SKILL.md",
-    configPath:   join(HOME, ".config", "amp", "settings.json"),
-    configKey:    "mcpServers",
-    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
     rulesSnippet: "agent_templates/amp/AGENTS.snippet.md",
     rulesTarget:  join(HOME, ".config", "amp", "AGENTS.md"),
   },
   claude: {
-    // Claude Code: inject snippet into existing CLAUDE.md (never overwrite)
-    // MCP config lives in ~/.claude.json under projects.<projectPath>.mcpServers
-    configPath:   join(HOME, ".claude.json"),
-    configKey:    "mcpServers",
-    configNested: true,                // uses projects.<path>.mcpServers structure
-    configValue:  { qmd: { type: "stdio", command: "qmd", args: ["mcp"] } },
     rulesSnippet: "agent_templates/claude/CLAUDE.snippet.md",
     rulesTarget:  join(HOME, ".claude", "CLAUDE.md"),
   },
   opencode: {
-    configPath:   join(HOME, ".config", "opencode", "opencode.json"),
-    configKey:    "mcp",
-    configValue:  { qmd: { type: "local", command: ["qmd", "mcp"] } },
     rulesSnippet: "agent_templates/opencode/AGENTS.snippet.md",
     rulesTarget:  join(HOME, ".config", "opencode", "AGENTS.md"),
   },
   cursor: {
-    configPath:   join(HOME, ".cursor", "mcp.json"),
-    configKey:    "mcpServers",
-    configValue:  { qmd: { command: "qmd", args: ["mcp"] } },
     rulesSnippet: "agent_templates/cursor/.cursorrules.snippet",
     rulesTarget:  join(HOME, ".cursor", ".cursorrules"),
   },
@@ -237,25 +211,6 @@ if (values.check) {
           hasUpdates = true;
         }
       }
-    }
-
-    // Check MCP config
-    const configData = readJson(cfg.configPath);
-    if (!configData) {
-      warn(`${name}: config not found at ${cfg.configPath}`);
-    } else if (cfg.configNested) {
-      // Claude Code: check projects.<path>.mcpServers.qmd
-      const projects = configData.projects || {};
-      const hasQmd = Object.values(projects).some((p) => p?.mcpServers?.qmd);
-      if (hasQmd) {
-        ok(`${name}: MCP config OK`);
-      } else {
-        warn(`${name}: qmd MCP not configured in ${cfg.configPath}`);
-      }
-    } else if (!configData[cfg.configKey]?.qmd) {
-      warn(`${name}: qmd MCP not configured in ${cfg.configPath}`);
-    } else {
-      ok(`${name}: MCP config OK`);
     }
 
     // Check rules snippet
@@ -465,52 +420,6 @@ for (const name of agentList) {
     }
   }
 
-  // 3. Merge MCP config — only ADD qmd entry, never remove existing entries
-  const existing = readJson(cfg.configPath);
-
-  if (existing === undefined) {
-    err(`${cfg.configPath} is malformed JSON — fix manually`);
-    console.log(`  Add to "${cfg.configKey}": ${JSON.stringify(cfg.configValue)}`);
-    continue;
-  }
-
-  if (cfg.configNested) {
-    // Claude Code: ~/.claude.json uses projects.<path>.mcpServers structure
-    if (existing === null) {
-      // File doesn't exist — create with user-scope (HOME path as project key)
-      writeJson(cfg.configPath, { projects: { [HOME]: { mcpServers: cfg.configValue } } });
-      ok(`Config → created ${cfg.configPath}`);
-    } else {
-      const projects = existing.projects || {};
-      const projectKey = HOME;
-      const project = projects[projectKey] || {};
-      const servers = project.mcpServers || {};
-      if (servers.qmd) {
-        ok(`Config → qmd already in ${cfg.configPath} (not modified)`);
-      } else {
-        project.mcpServers = { ...servers, ...cfg.configValue };
-        projects[projectKey] = project;
-        existing.projects = projects;
-        writeJson(cfg.configPath, existing);
-        ok(`Config → added qmd to ${cfg.configPath} (user scope: ${projectKey})`);
-      }
-    }
-  } else if (existing === null) {
-    // File doesn't exist — create with just qmd
-    writeJson(cfg.configPath, { [cfg.configKey]: cfg.configValue });
-    ok(`Config → created ${cfg.configPath}`);
-  } else {
-    // File exists — check if qmd already configured
-    const section = existing[cfg.configKey];
-    if (section?.qmd) {
-      ok(`Config → qmd already in ${cfg.configPath} (not modified)`);
-    } else {
-      // Add qmd to existing section, preserve everything else
-      existing[cfg.configKey] = { ...(section || {}), ...cfg.configValue };
-      writeJson(cfg.configPath, existing);
-      ok(`Config → added qmd to ${cfg.configPath}`);
-    }
-  }
 }
 
 console.log(`\n${C.green("✓")} Done! Restart your agent(s), then test: "search wiki for LLM Wiki"\n`);
