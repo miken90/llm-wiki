@@ -1,7 +1,7 @@
 ---
 title: Wiki Schema
 type: schema
-updated: 2026-04-07
+updated: 2026-04-08
 ---
 
 # Wiki Schema
@@ -73,12 +73,13 @@ created: 2026-04-07
 updated: 2026-04-07
 tags: [tag1, tag2]
 aliases: [Alternative Name]
+projects: [project-a, project-b]
 ---
 ```
 
 **Required fields:** `title`, `type`, `created`, `updated`
 **Recommended fields:** `sources`, `tags`
-**Optional fields:** `aliases`
+**Optional fields:** `aliases`, `projects`
 
 ### Page Types
 
@@ -176,7 +177,7 @@ At small scale (~100 pages), `wiki/index.md` is sufficient for navigation. As th
 - **Template:** `config.example.yaml` — copy to `config.yaml` and customize
 - **Location:** `{{WIKI_ROOT}}/config.yaml` (gitignored)
 - **Schema:** topics, strategies, feeds, safety limits — see `config.example.yaml`
-- **Source tracking:** topics and feeds may include optional `registered_by` and `registered_at` fields to track which project registered them. Manually added entries don't need these fields.
+- **Source tracking:** topics and feeds may include optional `registered_by` (string or array of strings) and `registered_at` fields to track which project registered them. When multiple projects register the same topic, `registered_by` becomes an array. Agents must normalize on read: treat `"project-a"` as `["project-a"]`. `registered_at` reflects the first registration date and does not change when additional projects join. Manually added entries don't need these fields.
 
 ### Discovery State
 
@@ -357,8 +358,11 @@ Register scans a project to infer relevant topics and feeds, then appends them t
 4. User confirms or edits
 5. Read `config.yaml` (create from `config.example.yaml` if absent)
 6. For each approved topic:
-   a. Check dedup: skip if topic with same name exists AND `registered_by` matches
-   b. Check keyword overlap: Jaccard similarity |intersection| / |union| > 0.8 with existing topic → warn, let user decide
+   a. Check if topic with same name exists:
+      - YES + project already in `registered_by` → skip (idempotent)
+      - YES + project NOT in `registered_by` → append project to `registered_by` array
+      - NO → create new topic with `registered_by: [project]`
+   b. Check keyword overlap: Jaccard similarity |intersection| / |union| > 0.8 with DIFFERENT-named topic → warn, let user decide
    c. Append to `topics:` array with `registered_by` and `registered_at`
 7. Optionally propose feeds:
    a. If project has known blog/RSS → suggest RSS feed
@@ -384,14 +388,18 @@ Unregister removes all topics and feeds registered by a specific project. Only e
 **Steps:**
 
 1. Read `config.yaml`
-2. Find all entries (topics, RSS feeds, GitHub repos) with `registered_by: "<project>"`
+2. Find all entries (topics, RSS feeds, GitHub repos) where `registered_by` array contains `"<project>"`
 3. Present list to user for confirmation
-4. Remove confirmed entries from `config.yaml`
+4. For each confirmed entry:
+   a. Remove project from `registered_by` array
+   b. If `registered_by` array is now empty → remove entire entry from `config.yaml`
+   c. If `registered_by` still has other projects → keep entry, update array only
 5. Write updated `config.yaml`
 6. Append to `wiki/log.md`: `## [YYYY-MM-DD] unregister | <project> — N topics, M feeds removed`
 
 **Rules:**
-- Only removes entries with matching `registered_by` — manually added topics are never touched
+- Only modifies entries where `registered_by` contains the project — manually added topics are never touched
+- If a topic has multiple projects in `registered_by`, only the specified project is removed
 - If no entries found for the project, report and exit
 
 ---
@@ -450,6 +458,10 @@ Unregister removes all topics and feeds registered by a specific project. Only e
       ```
    b. Append original content below frontmatter
 5. Run the standard ingest flow (steps 1-12 above) for each copied source
+5a. For each wiki page created/updated during ingest:
+   - Add project name to `projects` field in frontmatter
+   - If `projects` field exists → append (deduplicated)
+   - If `projects` field absent → create as `[project-name]`
 6. Re-index search if applicable: `qmd update && qmd embed`
 
 **Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.

@@ -194,8 +194,9 @@ register
    Approve all / select by number / edit / skip?
    ```
 4. You approve or edit
-5. Appends to `config.yaml` with `registered_by` and `registered_at` tracking
-6. Dedup: skips if topic already exists with matching name + project
+5. Appends to `config.yaml` with `registered_by` (array) and `registered_at` tracking
+6. If topic already exists: appends project to `registered_by` array (instead of skipping)
+7. Dedup: skips only if project already in topic's `registered_by` array
 
 ### Unregister a project
 
@@ -204,9 +205,12 @@ unregister my-react-app
 ```
 
 **What happens:**
-1. Finds all topics/feeds tagged with `registered_by: "my-react-app"`
+1. Finds all topics/feeds where `registered_by` array contains `"my-react-app"`
 2. Shows you the list for confirmation
-3. Removes only those entries — manually added topics are never touched
+3. Removes `"my-react-app"` from each entry's `registered_by` array
+4. If an entry's array becomes empty → removes the entire entry
+5. If other projects remain → keeps the entry with updated array
+6. Manually added topics are never touched
 
 ### How registration works
 
@@ -217,7 +221,7 @@ topics:
   - name: "React Performance"
     keywords: ["RSC", "Suspense", "hydration"]
     priority: high
-    registered_by: "my-react-app"    # ← which project added this
+    registered_by: ["my-react-app"]  # ← array, supports multi-project
     registered_at: "2026-04-07"      # ← when
 ```
 
@@ -226,6 +230,32 @@ These fields are **optional** — existing topics without them still work perfec
 **Dedup rules:**
 - Same topic name + same `registered_by` → skip (already registered)
 - Keyword overlap > 80% (Jaccard similarity) with existing topic → warn, you decide
+
+### Sharing topics across projects
+
+Multiple projects can register the same topic. The topic accumulates projects in its `registered_by` array:
+
+1. `register` from project-a → `registered_by: ["project-a"]`
+2. `register` from project-b (same topic detected) → `registered_by: ["project-a", "project-b"]`
+
+Unregistering one project removes only that project from the array. The topic persists as long as at least one project remains.
+
+### Filter by project
+
+Wiki pages created during project ingestion include a `projects` frontmatter field:
+
+```yaml
+projects: [my-react-app, my-api-server]
+```
+
+When querying, you can ask for project-specific results:
+
+```
+search wiki for performance issues in my-react-app
+What architecture decisions were made for tablepro?
+```
+
+Note: Filtering is agent-level — the agent reads `projects` frontmatter from search results and filters accordingly. No qmd-level project filter exists.
 
 ## Update a Project's Wiki Pages
 
@@ -289,6 +319,68 @@ The agent should **proactively write these back** to the wiki without waiting fo
 
 Sources and wiki pages already ingested remain — only config entries are removed.
 
+### Cross-project knowledge search
+
+From any project repo, search the shared wiki before starting work:
+
+```
+search wiki for authentication patterns
+search wiki for YOLO player detection
+```
+
+The wiki is a **shared knowledge service** — agents in different project repos all read/write the same wiki via qmd CLI. Knowledge discovered in one project is instantly available to all others.
+
+### Book reading
+
+Ingest chapters incrementally. The wiki auto-builds pages for characters, themes, and plot threads:
+
+```
+1. ingest sources/book-ch01.md   # First chapter
+2. ingest sources/book-ch02.md   # Second chapter — wiki links to existing pages
+3. What are the recurring themes?  # Query across chapters
+4. lint wiki                      # Find gaps in character/theme coverage
+```
+
+### Business / team wiki
+
+Feed meeting transcripts, project docs, and customer calls into a centralized knowledge base:
+
+```
+1. ingest sources/meeting-2026-04-01.md    # Meeting notes
+2. ingest sources/customer-call-acme.md    # Customer feedback
+3. ingest sources/quarterly-roadmap.md     # Strategy doc
+4. What are the top customer pain points?  # Query across sources
+```
+
+The wiki synthesizes across all sources — cross-referencing customer feedback with roadmap items and meeting decisions.
+
+### Competitive analysis
+
+Build structured comparisons across competitors:
+
+```
+1. ingest sources/competitor-a-pricing.md
+2. ingest sources/competitor-b-features.md
+3. Compare competitor A vs B on pricing and features  # → comparison table
+4. lint wiki                                           # Find gaps in coverage
+5. discover                                            # Find new competitor info
+```
+
+The wiki creates entity pages per competitor and synthesis pages for cross-competitor analysis.
+
+### Auto-discovery loop
+
+The wiki has a self-healing knowledge loop — lint finds gaps, discover fills them:
+
+```
+lint wiki         → finds gaps (e.g., "homography mentioned but no page exists")
+                  → writes gaps to .discoveries/gaps.json
+discover          → reads gaps.json → searches for sources to fill them
+run               → ingests new sources → lint again → gaps shrink
+```
+
+This cycle compounds automatically via `run` (max 2 rounds per run). Over time, the wiki becomes increasingly comprehensive with minimal manual effort.
+
 ## Tips
 
 - **Search before creating** — always check if a page exists before making a new one
@@ -311,4 +403,4 @@ Sources and wiki pages already ingested remain — only config entries are remov
 
 ---
 
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-08

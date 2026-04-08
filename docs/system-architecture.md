@@ -242,7 +242,8 @@ Project directory
         │
         ├→ For each approved topic:
         │   ├─ Check dedup (name + keyword Jaccard > 0.8)
-        │   └─ Append to topics: array with registered_by, registered_at
+        │   ├─ If topic exists: append project to registered_by array
+        │   └─ If new: create topic with registered_by: [project], registered_at
         │
         ├→ (Optional) Propose feeds (RSS, GitHub repos)
         │
@@ -261,11 +262,13 @@ Project name
         │
         ├→ Read config.yaml
         │
-        ├→ Find all entries with registered_by: "project-name"
+        ├→ Find all entries where registered_by contains "project-name"
         │
         ├→ Present list to user for confirmation
         │
-        ├→ Remove confirmed entries from config.yaml
+        ├→ Remove project from registered_by arrays
+        │
+        ├→ Delete entries where registered_by is now empty
         │
         └→ Append to wiki/log.md
            (e.g., "## [2026-04-07] unregister | my-project — 3 topics removed")
@@ -514,4 +517,4 @@ Uses `<!-- llm-wiki:start -->` / `<!-- llm-wiki:end -->` markers for surgical in
 ---
 
 **Document status:** Version 1.0 — Foundation complete.  
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-08

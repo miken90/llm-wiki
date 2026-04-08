@@ -27,6 +27,7 @@ tags: [tag1, tag2]
 **Optional fields:**
 ```yaml
 aliases: [Alternative Name]
+projects: [project-a, project-b]
 ```
 
 **Rules:**
@@ -218,8 +219,8 @@ topics:
   - name: "Topic Name"
     keywords: ["kw1", "kw2", "kw3"]
     priority: high | medium | low
-    # registered_by: "project-name"  # Set by register operation
-    # registered_at: "2026-04-07"    # Set by register operation
+    # registered_by: ["project-name"]  # Array — supports multi-project
+    # registered_at: "2026-04-07"      # Set by register operation
 
 discovery:
   strategies: [web_search, feed_poll, github_watch]
@@ -245,7 +246,8 @@ feeds:
 - Topic names must be unique (deduplicated by name + keyword Jaccard similarity)
 - Keywords are flat list, lowercase
 - Priority: high (search immediately) | medium (search periodically) | low (skip)
-- Registered entries tracked with optional `registered_by` and `registered_at`
+- `registered_by` supports string (backward compat) or array (preferred) for multi-project tracking
+- `registered_at` reflects first registration date (does not update when additional projects join)
 - Graceful degradation if config missing
 
 ## Discovery State Standards (.discoveries/)
@@ -509,5 +511,5 @@ Before committing changes:
 ---
 
 **Document status:** Version 1.0 — Foundation standards complete.  
-**Last updated:** 2026-04-07  
+**Last updated:** 2026-04-08  
 **Maintained by:** Technical Writer role

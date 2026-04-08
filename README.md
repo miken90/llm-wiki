@@ -183,7 +183,7 @@ register my-react-app
 register my-api-server
 ```
 
-Topics are tagged with `registered_by` for traceability. To remove a project's topics:
+Topics are tagged with `registered_by` (array format) for traceability. Multiple projects can share the same topic — the second registration appends to the array instead of skipping. To remove a project's topics:
 
 ```
 unregister my-react-app

@@ -100,7 +100,7 @@ Per-agent instruction files. Idempotent injection via `<!-- llm-wiki:start -->` 
 
 **Sections:**
 - `wiki:` — Vault metadata (name, language)
-- `topics:` — Keywords, priority, optional `registered_by` tracking
+- `topics:` — Keywords, priority, optional `registered_by` tracking (string or array for multi-project)
 - `discovery:` — Strategies (web_search, feed_poll, github_watch), limits
 - `feeds:` — RSS URLs, GitHub repos/orgs to watch
 
@@ -184,7 +184,7 @@ aliases: [Alternative Name]
 
 **Required:** title, type, created, updated  
 **Recommended:** sources, tags  
-**Optional:** aliases
+**Optional:** aliases, projects
 
 ### Content Rules
 - One topic per page (atomic notes)
@@ -298,4 +298,4 @@ Thresholds tunable in schema.
 ---
 
 **Document status:** Foundation complete.  
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-08
