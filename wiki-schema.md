@@ -579,13 +579,15 @@ After completing a feature, fix, or refactor that touches a **registered project
    d. Append to `wiki/log.md`: `## [YYYY-MM-DD] auto-sync | <project> — N pages updated`
 4. If no doc changes detected → skip silently
 
-### Integration points
+### When to trigger
 
-| Skill | When | Action |
-|-------|------|--------|
-| `cook` | After code-review, before ship | Check & sync wiki for current project |
-| `ship` | After successful commit (Step 5) | Check & sync wiki for current project |
-| `git` (cm/cp) | After commit | Check & sync wiki for current project |
+Auto-sync should run after any of these events:
+
+- **After committing code** that touches `README.md`, `docs/*`, or architecture files
+- **After completing a feature or fix** (before marking work as done)
+- **After a code review** that resulted in doc changes
+
+Agents or agent skills that perform commits should check for doc changes and trigger auto-sync automatically.
 
 ### Rules
 - **Silent when no changes** — don't report "wiki is up to date"
