@@ -8,10 +8,16 @@
 4. **Read full files** — only when need complete context
 5. **Scout** — only when docs missing or stale
 
-### Discovery Operations
+### Project Registration
+- `register <project>` / `add <project> to wiki` — **syncs codebase docs first**, then optionally proposes discovery topics
+- `unregister <project>` — remove project's topics/feeds from config.yaml
+
+### Auto-Sync on Commit
+After committing, if `README.md` or `docs/*` changed and project is registered → update wiki silently.
+See wiki-schema.md "Auto-Sync on Significant Changes".
+
+### Discovery Operations (optional)
 - `discover` — find new sources → queue to inbox. Load `llm-wiki` skill first.
 - `run` — full cycle: discover → approve → ingest → lint
 - `status` — wiki health dashboard
-- `register <project>` — scan project → propose topics → append to config.yaml
-- `unregister <project>` — remove project's topics/feeds from config.yaml
 <!-- llm-wiki:end -->

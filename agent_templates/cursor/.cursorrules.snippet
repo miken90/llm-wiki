@@ -16,12 +16,21 @@ Tool Map (absolute paths, work cross-project):
 - Read wiki page: `qmd get <file>` via shell (fallback: native read with WIKI_ROOT prefix)
 - Write wiki pages: native tools with WIKI_ROOT prefix
 
-Operations: ingest, query, lint, discover, run, status, register, unregister
+Operations: ingest, query, lint, register, unregister, discover, run, status
+
+Project Registration:
+- register <project> / add <project> to wiki: syncs codebase docs first, then optionally proposes discovery topics
+- update wiki with <project> changes: diff vs sources, update wiki pages
+- unregister <project>: remove project's topics/feeds from config.yaml
+
+Auto-Sync on Commit:
+After committing, if README.md or docs/* changed and project is registered → update wiki silently.
+Check WIKI_ROOT/sources/ for source_url matching project. Skip if not registered.
+
+Discovery (optional, run explicitly):
 - discover: search web/feeds/GitHub → queue candidates to inbox
 - run: discover → approve → ingest → lint (max 2 rounds)
 - status: page counts, health, capabilities
-- register <project>: scan project → propose topics → append to config.yaml
-- unregister <project>: remove project's topics/feeds from config.yaml
 
 Read WIKI_ROOT/wiki-schema.md for steps. Config: WIKI_ROOT/config.yaml
 Skip web strategies if web tools unavailable.

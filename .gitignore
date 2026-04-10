@@ -23,6 +23,9 @@ sources/assets/*
 !sources/articles/
 sources/articles/*
 !sources/articles/.gitkeep
+!sources/projects/
+sources/projects/*
+!sources/projects/.gitkeep
 wiki/entities/*
 !wiki/entities/.gitkeep
 wiki/concepts/*

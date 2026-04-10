@@ -54,19 +54,29 @@ All tools work cross-project via absolute paths. WIKI_ROOT = {{WIKI_ROOT}}
 ## Operations
 
 - **Ingest source**: "ingest `<source_path>`" — source already in sources/
-- **Ingest project**: "add `<project>` to wiki" or "ingest project at `<path>`" — agent scans project, presents docs found, user selects, agent copies to sources/ + ingests
 - **Query**: Search via qmd + keyword search, read pages, synthesize answer with [[citations]]
 - **Lint**: Read wiki-schema.md "Operation — Lint" section, follow steps
 
-## Discovery Operations
+## Project Registration
+
+- **Register**: "register `<project>`" / "add `<project>` to wiki" / "ingest project at `<path>`" — **all route to same flow**: syncs codebase docs first (scan → copy to sources/ → full 12-step ingest → wiki pages → `qmd embed`), then optionally proposes discovery topics
+- **Unregister**: "unregister `<project>`" — remove project's registered topics/feeds from config.yaml
+
+## Auto-Sync on Commit
+
+After committing code, if `README.md` or `docs/*` changed and project is registered in wiki:
+1. Check `sources/` for files with `source_url: "local://<project>/..."` 
+2. If found → update source copies + wiki pages silently (no user prompt)
+3. Re-index: `qmd update && qmd embed`
+4. If not registered → skip silently
+
+See wiki-schema.md "Auto-Sync on Significant Changes" for full spec.
+
+## Discovery Operations (optional, run explicitly)
 
 - **Discover**: "discover" or "find new sources" — search web/feeds/GitHub, queue to inbox
 - **Run**: "run" or "run full cycle" — discover → approve → ingest → lint (max 2 rounds)
 - **Status**: "status" or "wiki status" — page counts, health, capabilities
-- **Register**: "register `<project>`" — scan project, propose topics/feeds, append to config.yaml
-- **Unregister**: "unregister `<project>`" — remove project's registered topics/feeds from config.yaml
-
-For detailed steps, read wiki-schema.md Discovery/Run/Status sections.
 
 ### Discovery Capability Map
 

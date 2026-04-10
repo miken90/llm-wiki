@@ -18,16 +18,26 @@
 
 ### Operations
 - **Ingest source**: "ingest `<path>`" — source already in sources/
-- **Ingest project**: "add `<project>` to wiki" — scan project, present docs, user selects
-- **Update project**: "update wiki with `<project>` changes" — diff vs sources, update
 - **Query**: search wiki → read pages → synthesize answer with [[citations]]
 - **Lint**: "lint wiki" — orphans, broken links, stale claims, gaps
+- **Organic**: proactively write durable knowledge during normal work
+
+### Project Registration
+- **Register**: "register `<project>`" / "add `<project>` to wiki" — **syncs codebase docs first** (scan → ingest → wiki pages), then optionally proposes discovery topics
+- **Update**: "update wiki with `<project>` changes" — diff vs sources, update
+- **Unregister**: "unregister `<project>`" → remove project's registered topics/feeds
+
+### Auto-Sync on Commit
+After committing code, if `README.md` or `docs/*` changed and project is registered in wiki:
+1. Check `{{WIKI_ROOT}}/sources/` for files with `source_url: "local://<project>/..."`
+2. If found → update source copies + wiki pages silently (no user prompt)
+3. Re-index: `qmd update && qmd embed`
+4. If not registered → skip silently
+
+### Discovery Operations (optional, run explicitly)
 - **Discover**: "discover" → search web/feeds/GitHub → queue candidates to inbox
 - **Run**: "run" → discover → approve → ingest → lint (max 2 rounds)
 - **Status**: "status" → page counts, health, capabilities
-- **Register**: "register `<project>`" → scan project → propose topics → append to config.yaml
-- **Unregister**: "unregister `<project>`" → remove project's registered topics/feeds
-- **Organic**: proactively write durable knowledge during normal work
 
 Read {{WIKI_ROOT}}/wiki-schema.md for detailed steps. Config: {{WIKI_ROOT}}/config.yaml
 

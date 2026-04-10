@@ -37,7 +37,12 @@ llm-wiki/
 ├── sources/                  # Raw source documents — IMMUTABLE
 │   ├── articles/             # Auto-discovered web articles
 │   ├── assets/               # Downloaded images and attachments
-│   └── *.md, *.txt           # Manually added source files
+│   ├── projects/             # Project documentation (grouped by org/project)
+│   │   ├── <org>/            # Org-level grouping (optional)
+│   │   │   ├── <project-a>/
+│   │   │   └── <project-b>/
+│   │   └── <standalone>/     # Projects without org grouping
+│   └── *.md                  # General reference sources
 ├── wiki/                     # LLM-maintained knowledge pages
 │   ├── index.md              # Auto-maintained page catalog
 │   ├── log.md                # Append-only operations log
@@ -332,21 +337,69 @@ pending → approved → ingested
 
 ## Operation — Register
 
-**Trigger:** "register" or "register `<project>`" or "register topics from `<project>`"
+**Trigger:** "register `<project>`", "add `<project>` to wiki", "ingest project at `<path>`"
 
-Register scans a project to infer relevant topics and feeds, then appends them to the wiki's `config.yaml`. This is a **config-write** operation — it modifies `config.yaml` only, not wiki pages.
+All three triggers route to the same flow below.
 
-**Steps:**
+Register adds a project to the wiki by **syncing its codebase documentation first** (primary purpose), then optionally proposing discovery topics. The wiki's main value is codebase knowledge — external discovery is secondary.
+
+### Phase 1 — Codebase Sync (always runs)
 
 1. Identify the project:
    a. Use current working directory as the project (agent is already in the project repo)
    b. Detect project name from `package.json` name field, directory name, or git remote
-2. Scan the project for topic signals:
+2. Scan the project directory — look for:
+   - `README.md`, `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`
+   - Architecture docs, decision records, codebase summaries
+   - Config files that reveal stack (`package.json`, `Cargo.toml`, `go.mod`, etc.)
+3. Present findings to user with a summary table:
+   ```
+   Found N docs in <project>:
+   | # | File | Size | Content |
+   | 1 | docs/architecture.md | 5KB | System architecture overview |
+   | 2 | README.md | 3KB | Project overview + setup |
+   ...
+   Which files should I ingest? (all / select by number / skip)
+   ```
+4. User selects which files to ingest
+5. For each selected file:
+   a. Copy to `sources/<project-slug>-<filename>.md` with frontmatter:
+      ```yaml
+      ---
+      title: "<Project> — <Doc Title>"
+      source_url: "local://<project>/<relative-path>"
+      author: <from git or user>
+      date_ingested: <today>
+      format: project-docs
+      ---
+      ```
+   b. Append original content below frontmatter
+   c. Run the standard **ingest flow** (Operation — Ingest, steps 1-12) for each copied source:
+      summaries → entities → concepts → decisions → syntheses → wikilinks → index → log
+   d. For each wiki page created/updated:
+      - Add project name to `projects` field in frontmatter
+      - If `projects` field exists → append (deduplicated)
+      - If `projects` field absent → create as `[project-name]`
+6. **Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.
+7. Re-index search: `qmd update && qmd embed`
+
+### Phase 2 — Discovery Topics (optional, only if user opts in)
+
+After codebase sync completes, ask:
+```
+Codebase docs synced. Want to also register discovery topics for <project>?
+(These are used when you run `discover` later to find external articles/resources.)
+[yes / skip]
+```
+
+If user says yes:
+
+7. Scan the project for topic signals:
    a. `README.md` → extract technology stack, domain keywords
    b. `package.json` / `Cargo.toml` / `go.mod` → extract dependencies as keyword hints
    c. `docs/` → extract domain concepts
    d. Existing wiki pages about this project → extract tags
-3. Propose topics to user:
+8. Propose topics to user:
    ```
    Detected topics for <project>:
    | # | Topic | Keywords | Priority |
@@ -355,25 +408,30 @@ Register scans a project to infer relevant topics and feeds, then appends them t
    ...
    Approve all / select by number / edit / skip?
    ```
-4. User confirms or edits
-5. Read `config.yaml` (create from `config.example.yaml` if absent)
-6. For each approved topic:
-   a. Check if topic with same name exists:
-      - YES + project already in `registered_by` → skip (idempotent)
-      - YES + project NOT in `registered_by` → append project to `registered_by` array
-      - NO → create new topic with `registered_by: [project]`
-   b. Check keyword overlap: Jaccard similarity |intersection| / |union| > 0.8 with DIFFERENT-named topic → warn, let user decide
-   c. Append to `topics:` array with `registered_by` and `registered_at`
-7. Optionally propose feeds:
-   a. If project has known blog/RSS → suggest RSS feed
-   b. If project is a GitHub repo → suggest `github_repos` watch
-8. Write updated `config.yaml` — use surgical edit (find `topics:` array, append entry), never rewrite entire file
-9. Report: N topics added, M feeds added, K skipped (already registered)
-10. Append to `wiki/log.md`: `## [YYYY-MM-DD] register | <project> — N topics, M feeds`
+9. User confirms or edits
+10. Read `config.yaml` (create from `config.example.yaml` if absent)
+11. For each approved topic:
+    a. Check if topic with same name exists:
+       - YES + project already in `registered_by` → skip (idempotent)
+       - YES + project NOT in `registered_by` → append project to `registered_by` array
+       - NO → create new topic with `registered_by: [project]`
+    b. Check keyword overlap: Jaccard similarity |intersection| / |union| > 0.8 with DIFFERENT-named topic → warn, let user decide
+    c. Append to `topics:` array with `registered_by` and `registered_at`
+12. Optionally propose feeds:
+    a. If project has known blog/RSS → suggest RSS feed
+    b. If project is a GitHub repo → suggest `github_repos` watch
+13. Write updated `config.yaml` — surgical edit, never rewrite entire file
+
+### Reporting
+
+14. Report: N docs ingested, N wiki pages created/updated, N topics added (if any), N feeds added (if any)
+15. Append to `wiki/log.md`: `## [YYYY-MM-DD] register | <project> — N docs synced, N topics, N feeds`
 
 **Rules:**
+- **Codebase sync is the primary action** — it always runs, even if user skips discovery topics
+- Discovery topics are optional — they only matter when user explicitly runs `discover` later
 - `registered_by` and `registered_at` fields are **optional** — backward compatible with manually added entries
-- Idempotent: re-registering the same project updates existing entries, doesn't duplicate
+- Idempotent: re-registering syncs new/changed docs + updates existing topic entries without duplicating
 - No auto-trigger of discover — user explicitly runs discover after register
 - Dedup uses Jaccard similarity: |intersection| / |union| of keyword sets
 
@@ -429,42 +487,7 @@ Unregister removes all topics and feeds registered by a specific project. Only e
 
 **Trigger:** "add `<project>` to wiki", "ingest project at `<path>`"
 
-**Steps:**
-
-1. Scan the project directory — look for:
-   - `README.md`, `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`
-   - Architecture docs, decision records, codebase summaries
-   - Config files that reveal stack (package.json, Cargo.toml, go.mod, etc.)
-2. Present findings to user with a summary table:
-   ```
-   Found N docs in <project>:
-   | File | Size | Content |
-   | docs/architecture.md | 5KB | System architecture overview |
-   | README.md | 3KB | Project overview + setup |
-   ...
-   Which files should I ingest? (all / select by number / skip)
-   ```
-3. User selects which files to ingest
-4. For each selected file:
-   a. Copy to `sources/<project-slug>-<filename>.md` with frontmatter:
-      ```yaml
-      ---
-      title: "<Project> — <Doc Title>"
-      source_url: "local://<project>/<relative-path>"
-      author: <from git or user>
-      date_ingested: <today>
-      format: project-docs
-      ---
-      ```
-   b. Append original content below frontmatter
-5. Run the standard ingest flow (steps 1-12 above) for each copied source
-5a. For each wiki page created/updated during ingest:
-   - Add project name to `projects` field in frontmatter
-   - If `projects` field exists → append (deduplicated)
-   - If `projects` field absent → create as `[project-name]`
-6. Re-index search if applicable: `qmd update && qmd embed`
-
-**Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.
+→ **Redirects to Operation — Register** (see above). Register Phase 1 performs the full codebase sync with the same ingest flow.
 
 ---
 
@@ -534,6 +557,42 @@ During normal work in any project, the agent may discover durable knowledge wort
 - Project-specific implementation details (belongs in project docs)
 - Temporary workarounds
 - Routine code changes
+
+---
+
+## Auto-Sync on Significant Changes
+
+Wiki pages for registered projects can become stale as code evolves. Agents should **proactively check and sync** wiki after significant work — without requiring user to prompt.
+
+### When to auto-sync
+
+After completing a feature, fix, or refactor that touches a **registered project** (i.e., the project has wiki pages with matching `projects` field), the agent should:
+
+1. Check if the current project is registered: search `sources/` for files with `source_url: "local://<project>/..."` prefix
+2. If registered → compare changed files against ingested sources:
+   - Did `README.md`, `docs/*`, or architecture files change?
+   - Did new docs/ files appear that aren't in sources/ yet?
+3. If changes detected → run a **lightweight update** (no user prompt needed):
+   a. Update the source copy in `sources/` with new content
+   b. Update related wiki pages (entities, concepts, summaries)
+   c. Re-index: `qmd update && qmd embed`
+   d. Append to `wiki/log.md`: `## [YYYY-MM-DD] auto-sync | <project> — N pages updated`
+4. If no doc changes detected → skip silently
+
+### Integration points
+
+| Skill | When | Action |
+|-------|------|--------|
+| `cook` | After code-review, before ship | Check & sync wiki for current project |
+| `ship` | After successful commit (Step 5) | Check & sync wiki for current project |
+| `git` (cm/cp) | After commit | Check & sync wiki for current project |
+
+### Rules
+- **Silent when no changes** — don't report "wiki is up to date"
+- **Lightweight** — only update changed docs, don't re-ingest unchanged files
+- **No user prompt** — auto-sync is non-destructive (updates existing pages, never deletes)
+- **Skip if project not registered** — only sync projects that have wiki pages
+- **Skip if wiki repo unavailable** — graceful degradation, never block the main workflow
 
 ---
 
