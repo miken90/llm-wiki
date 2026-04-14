@@ -8,6 +8,14 @@
 4. **Read full files** — only when need complete context
 5. **Scout** — only when docs missing or stale
 
+### Behavioral Rules
+- **Search before creating** — update existing wiki pages, don't duplicate
+- **Minimal sufficient write** — match effort to source density
+- **Self-audit** — "Could I update an existing page instead?", "Will this matter in 30 days?"
+- If ambiguous, choose narrower non-destructive interpretation and state the assumption
+- ❌ Don't create a concept page just because the source uses a new phrase → update existing + add alias
+- ❌ Don't save every answer to wiki → save only durable, reusable outputs
+
 ### Project Registration
 - `register <project>` / `add <project> to wiki` — **syncs codebase docs first**, then optionally proposes discovery topics
 - `unregister <project>` — remove project's topics/feeds from config.yaml

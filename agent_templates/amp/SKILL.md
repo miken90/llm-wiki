@@ -45,17 +45,30 @@ All tools work cross-project via absolute paths. WIKI_ROOT = {{WIKI_ROOT}}
 ## Write Rules
 
 - Read wiki-schema.md before first wiki write in a session
-- Search before creating — update existing pages, don't duplicate
+- **Search before creating** — update existing pages, don't duplicate
+- **Ask: "Could I improve an existing page instead of creating a new one?"**
 - One topic per page, use [[wikilinks]]
 - Append new information — don't overwrite existing content
 - Add YAML frontmatter (title, type, sources, created, updated, tags)
 - Commit wiki changes separately from project changes
+- **Before filing output, ask: "Will this still matter in 30 days?"**
+- If ambiguous, choose the narrower non-destructive interpretation and state the assumption
+
+### What Not to Do
+
+- ❌ Don't create a new concept page just because the source uses a new phrase → update existing page + add alias
+- ❌ Don't search the web first for a topic likely covered by the wiki → search wiki first, external only if wiki is thin
+- ❌ Don't extract every noun as an entity → extract only durable, reusable entities worth tracking
+- ❌ Don't save every query answer back to wiki → save only reusable outputs that compound knowledge
 
 ## Operations
 
 - **Ingest source**: "ingest `<source_path>`" — source already in sources/
+  - Done: summary page exists, index + log updated, no duplicate pages
 - **Query**: Search via qmd + keyword search, read pages, synthesize answer with [[citations]]
+  - Done: answer cites wiki pages; durable outputs saved to wiki or outputs/
 - **Lint**: Read wiki-schema.md "Operation — Lint" section, follow steps
+  - Done: errors/warnings/opportunities reported; gaps written to .discoveries/
 
 ## Project Registration
 

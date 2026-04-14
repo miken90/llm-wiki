@@ -10,6 +10,14 @@
 3. Search project code — find relevant implementations
 4. Read full files — only when need complete context
 
+### Behavioral Rules
+- **Search before creating** — update existing wiki pages, don't duplicate
+- **Minimal sufficient write** — match effort to source density
+- **Self-audit** — "Could I update an existing page instead?", "Will this matter in 30 days?"
+- If ambiguous, choose narrower non-destructive interpretation and state the assumption
+- ❌ Don't create a concept page just because the source uses a new phrase → update existing + add alias
+- ❌ Don't save every answer to wiki → save only durable, reusable outputs
+
 ### Tool Map (absolute paths, work cross-project)
 - Semantic search: `qmd query "..." -c wiki --md` via shell
 - Keyword search: grep in `{{WIKI_ROOT}}/wiki/`
@@ -18,8 +26,11 @@
 
 ### Operations
 - **Ingest source**: "ingest `<path>`" — source already in sources/
+  - Done: summary page exists, index + log updated, no duplicate pages
 - **Query**: search wiki → read pages → synthesize answer with [[citations]]
+  - Done: answer cites wiki pages; durable outputs saved
 - **Lint**: "lint wiki" — orphans, broken links, stale claims, gaps
+  - Done: errors/warnings/opportunities reported
 - **Organic**: proactively write durable knowledge during normal work
 
 ### Project Registration

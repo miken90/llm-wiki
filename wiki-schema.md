@@ -1,7 +1,7 @@
 ---
 title: Wiki Schema
 type: schema
-updated: 2026-04-08
+updated: 2026-04-14
 ---
 
 # Wiki Schema
@@ -17,6 +17,82 @@ This document is the single source of truth for all wiki conventions, page forma
 - Human curates sources and asks questions; the LLM does all bookkeeping
 - Cross-references, contradictions, and synthesis are maintained continuously
 - Humans abandon wikis because maintenance burden grows faster than value — LLMs don't get bored
+
+## Agent Operating Principles
+
+These principles govern all wiki operations. Internalize them — they reduce wasted work and improve wiki quality.
+
+### 1. Goal First, Not Steps First
+
+Before executing any operation, state the goal and what "done" looks like. Transform imperative tasks into verifiable outcomes.
+
+- ❌ "I'll ingest this source by following the 12 steps"
+- ✅ "Goal: integrate this source's knowledge into the wiki. Done when: summary page exists, key concepts linked, index updated, no duplicates created"
+
+### 2. Search Before Creating
+
+Always search the wiki before creating a new page. **Update existing pages** rather than creating near-duplicates.
+
+- ❌ Create `retrieval-augmented-generation.md` when `rag-vs-wiki.md` already covers the concept
+- ✅ Update `rag-vs-wiki.md` with new information, add aliases if the concept has multiple names
+
+**Create a new page only if:**
+- The topic is clearly distinct from all existing pages
+- The topic is likely reusable across future work
+- Adding to an existing page would make it unfocused
+
+### 3. Minimal Sufficient Action
+
+Do the smallest write that compounds knowledge. Match effort to source density.
+
+- ❌ Create 12 thin pages from one short article
+- ✅ Create 1 summary + update 2-3 existing concept/entity pages with new claims
+- ❌ Extract every noun as an entity page
+- ✅ Extract only durable, reusable entities worth tracking long-term
+
+**Scaling rule:** Replace "aim to touch 10-15 pages" with: touch as many pages as the source justifies — usually 3-8 for articles, 5-15 for dense technical docs, rarely more.
+
+### 4. Evidence Hierarchy
+
+When integrating information, label confidence by source:
+
+1. **Direct source text** — quoted or closely paraphrased from a source
+2. **Multiple corroborating sources** — confirmed across 2+ sources
+3. **Existing wiki synthesis** — prior integration by the agent
+4. **Agent inference** — reasoning not directly supported by sources
+
+Never present inference at the same confidence level as sourced claims. If uncertain, say so.
+
+### 5. Self-Audit Before Finishing
+
+After every write operation, ask:
+
+- Did I create a page where updating an existing one was enough?
+- Is this knowledge durable (still useful in 30 days), or project-local churn?
+- Did I preserve existing context, or accidentally overwrite useful prior synthesis?
+- Are the links helping navigation, or just padding?
+- Would another agent starting fresh understand what changed and why?
+
+### 6. Own Your Mess, Leave the Rest
+
+Fix issues introduced or exposed by your current operation. Do not turn a focused task into a repo-wide cleanup.
+
+- ❌ Ingest a source → notice 5 old broken links → fix all of them during ingest
+- ✅ Ingest a source → fix links you introduced → mention old broken links in lint backlog
+- ❌ Register a project → reformat the entire `config.yaml` → normalize all topic entries
+- ✅ Register a project → add your entries cleanly → leave existing entries untouched
+
+### 7. Surface Assumptions
+
+When ambiguity exists, choose the narrower non-destructive interpretation and state the assumption.
+
+- ❌ "update wiki" is ambiguous → silently re-ingest all sources from scratch
+- ✅ "update wiki" is ambiguous → ask "update which project?" or assume the most recent registered project and state: "Assuming you mean project X"
+
+Include in operation reports:
+- Assumptions made
+- Actions skipped and why
+- Follow-up opportunities (for user to decide later)
 
 ## Architecture
 
@@ -96,6 +172,42 @@ projects: [project-a, project-b]
 | `synthesis` | `wiki/syntheses/` | Cross-source analysis connecting multiple topics | `knowledge-management-evolution.md` |
 | `decision` | `wiki/decisions/` | Architecture or business decision records | `search-engine-choice.md` |
 
+### Page Structure Templates
+
+Each page type has an expected shape. Follow these to reduce variance.
+
+**Summary** (`wiki/summaries/`):
+- Source overview (1-2 sentences: what is this source, who wrote it)
+- Key claims (bullet list of the most important takeaways)
+- Entities and concepts mentioned (with `[[wikilinks]]`)
+- Open questions or gaps (what the source doesn't cover)
+
+**Concept** (`wiki/concepts/`):
+- Definition (what it is, in 1-2 sentences)
+- Why it matters (context, relevance)
+- Variants or tradeoffs (if applicable)
+- Related pages (`[[wikilinks]]`)
+- Source basis (which sources support this page)
+
+**Entity** (`wiki/entities/`):
+- What it is (person, org, product, tool — 1-2 sentences)
+- Why relevant (to wiki topics)
+- Related concepts/projects (`[[wikilinks]]`)
+
+**Synthesis** (`wiki/syntheses/`):
+- Question or theme being explored
+- Compared sources (which sources contribute)
+- Convergences (where sources agree)
+- Divergences (where sources conflict — see Contradiction Handling)
+- Conclusion or current understanding
+
+**Decision** (`wiki/decisions/`):
+- Context (what prompted the decision)
+- Decision (what was decided)
+- Rationale (why this option was chosen)
+- Alternatives considered
+- Consequences (what follows from this decision)
+
 ### Content Rules
 
 - **One topic per page** (atomic notes)
@@ -103,8 +215,36 @@ projects: [project-a, project-b]
 - Use `[[wikilinks]]` for cross-references between pages
 - For display text: `[[target-page|Display Text]]`
 - Aim for **dense, factual content** — not conversational prose
+- **Bullet-dense writing** — prefer structured lists over paragraphs; don't restate the same point across summary and concept pages
 - When updating an existing page, **append/integrate new information** — do not overwrite existing content unless correcting errors
 - File names: lowercase, hyphens for spaces (e.g., `andrej-karpathy.md`)
+
+### Contradiction Handling
+
+When sources disagree:
+
+1. **Preserve both claims** — do not silently pick one
+2. **Annotate the conflict** in the relevant concept/synthesis page with sources cited
+3. **Prefer newer or higher-authority source** only when there is clear justification (e.g., official docs supersede blog posts)
+4. If the contradiction is meaningful, create or update a synthesis page to explore it
+
+### Deprecation Protocol
+
+When wiki content becomes stale or invalid:
+
+1. **Do not silently delete pages** — mark as deprecated first
+2. Add to frontmatter: `status: deprecated`
+3. Add a note at the top: `> ⚠️ Deprecated (YYYY-MM-DD): <reason>. See [[replacement-page]] instead.`
+4. Update `wiki/index.md` — mark the entry or remove if replacement exists
+5. Only delete pages after user explicitly confirms
+
+### Open Questions Handling
+
+When ingest/query/lint uncovers uncertainty:
+
+- Put unresolved items in a `## Open Questions` section on the relevant page
+- Or write to `.discoveries/gaps.json` for future discovery
+- **Do not fill gaps with speculative text** — leave them as explicit questions
 
 ## Source Rules
 
@@ -216,6 +356,11 @@ Discovery operations use abstract capabilities — each agent template maps thes
 
 **Trigger:** "discover" or "find new sources"
 
+**Goal:** Find high-quality, novel source candidates that fill wiki gaps or enrich tracked topics.
+**Done when:** Inbox has new candidates with rationale, no duplicates, all scored.
+**Verify:** No duplicate URLs in inbox; all candidates have reason + score; JSON structure valid.
+**Shortcut:** If inbox already has unreviewed candidates, report them instead of searching again.
+
 **Steps:**
 
 1. Read `config.yaml` → topics, strategies, feeds (if absent, use empty defaults)
@@ -242,12 +387,19 @@ Discovery operations use abstract capabilities — each agent template maps thes
 - Dedup thresholds (0.9/0.6) are tunable — adjust if too aggressive/permissive
 - Discovered URLs must be validated — no `file://` or local paths
 - Fetched content must be sanitized — no script injection into markdown
+- **Prefer fewer high-signal candidates** over many weak ones — official docs > blogs > random commentary
+- Each inbox candidate should include: `url`, `title`, `score`, `reason` (why relevant), `gap_match` (which gap/topic it maps to)
 
 ---
 
 ## Operation — Run
 
 **Trigger:** "run" or "run full cycle"
+
+**Goal:** Improve wiki health in bounded iterations — discover, ingest approved sources, lint for gaps.
+**Done when:** All approved candidates ingested, lint completed, wiki re-indexed.
+**Verify:** Each round: accepted candidates fully ingested; lint results improved or backlog refined.
+**Stop early if:** Second round yields no high-value candidates, or lint only surfaces low-priority opportunities.
 
 **Steps:**
 
@@ -313,10 +465,18 @@ Pages:      N total (E entities, C concepts, S summaries, Y syntheses, D decisio
 Sources:    N total (M manual, A auto-discovered)
 Inbox:      N pending candidates
 Gaps:       N open knowledge gaps
-Last lint:  YYYY-MM-DD
+Last lint:  YYYY-MM-DD (errors: N, warnings: N)
 Last discover: YYYY-MM-DD
 Capabilities: web_search ✓/✗, http_fetch ✓/✗, qmd ✓/✗
 Health:     [Good | Warning | Needs Attention]
+
+Quality:
+  Broken links:     N
+  Orphan pages:     N (on disk but not in index)
+  Missing frontmatter: N
+  Stale pages:      N (updated > 90 days ago with newer sources available)
+  Deprecated pages: N
+  Pages touched (30d): N
 ```
 
 ### Candidate Lifecycle
@@ -343,6 +503,11 @@ All three triggers route to the same flow below.
 
 Register adds a project to the wiki by **syncing its codebase documentation first** (primary purpose), then optionally proposing discovery topics. The wiki's main value is codebase knowledge — external discovery is secondary.
 
+**Goal:** Integrate a project's documentation into the wiki as durable, linked knowledge.
+**Done when:** Foundational docs ingested, wiki pages created/updated, index updated, qmd re-indexed.
+**Verify:** Each copied source has `source_url`; no duplicate pages created; at least one summary + relevant concept/entity pages exist for the project.
+**Shortcut:** For projects with 1-2 small docs, skip topic proposal entirely.
+
 ### Phase 1 — Codebase Sync (always runs)
 
 1. Identify the project:
@@ -352,7 +517,11 @@ Register adds a project to the wiki by **syncing its codebase documentation firs
    - `README.md`, `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`
    - Architecture docs, decision records, codebase summaries
    - Config files that reveal stack (`package.json`, `Cargo.toml`, `go.mod`, etc.)
-3. Present findings to user with a summary table:
+3. Classify docs by priority:
+   - **Foundational** (ingest first): README, architecture, design decisions
+   - **Reference** (ingest if selected): API docs, configuration guides
+   - **Noise** (skip by default): changelogs, auto-generated docs, CI configs
+4. Present findings to user with a summary table:
    ```
    Found N docs in <project>:
    | # | File | Size | Content |
@@ -361,8 +530,8 @@ Register adds a project to the wiki by **syncing its codebase documentation firs
    ...
    Which files should I ingest? (all / select by number / skip)
    ```
-4. User selects which files to ingest
-5. For each selected file:
+5. User selects which files to ingest
+6. For each selected file:
    a. Copy to `sources/<project-slug>-<filename>.md` with frontmatter:
       ```yaml
       ---
@@ -373,15 +542,15 @@ Register adds a project to the wiki by **syncing its codebase documentation firs
       format: project-docs
       ---
       ```
-   b. Append original content below frontmatter
-   c. Run the standard **ingest flow** (Operation — Ingest, steps 1-12) for each copied source:
+      b. Append original content below frontmatter
+      c. Run the standard **ingest flow** (Operation — Ingest, steps 1-12) for each copied source:
       summaries → entities → concepts → decisions → syntheses → wikilinks → index → log
    d. For each wiki page created/updated:
       - Add project name to `projects` field in frontmatter
       - If `projects` field exists → append (deduplicated)
       - If `projects` field absent → create as `[project-name]`
-6. **Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.
-7. Re-index search: `qmd update && qmd embed`
+7. **Before writing:** Search the wiki first. Update existing pages rather than creating duplicates.
+8. Re-index search: `qmd update && qmd embed`
 
 ### Phase 2 — Discovery Topics (optional, only if user opts in)
 
@@ -443,6 +612,10 @@ If user says yes:
 
 Unregister removes all topics and feeds registered by a specific project. Only entries with a matching `registered_by` field are affected — manually added entries are never touched.
 
+**Goal:** Remove a project's discovery configuration without affecting wiki pages or other projects.
+**Done when:** All `registered_by` entries for this project cleaned from `config.yaml`.
+**Verify:** Only scoped entries changed; manually added topics untouched; shared topics still have other projects' ownership.
+
 **Steps:**
 
 1. Read `config.yaml`
@@ -468,20 +641,29 @@ Unregister removes all topics and feeds registered by a specific project. Only e
 
 **Trigger:** "ingest `<source_path>`" — source file already exists in `sources/`
 
+**Goal:** Convert one source into durable, linked wiki knowledge with minimal duplication.
+**Done when:** Summary page exists, relevant entity/concept/decision pages updated, index and log updated.
+**Verify:** No duplicate pages created; all touched pages have valid frontmatter and `[[wikilinks]]`; `updated:` date changed on every touched page; every new page appears in `wiki/index.md`.
+**Shortcut:** For thin sources (< 500 words), create only a summary page + update 1-2 existing pages. Skip synthesis unless cross-topic insight genuinely exists.
+
 **Steps:**
 
 1. Read the source file
-2. Discuss key takeaways with the user — what's important, what to emphasize
-3. Identify key entities, concepts, claims, and decisions in the source
-4. Create or update `wiki/summaries/<slug>.md` with a source summary
-5. For each entity: create or update `wiki/entities/<entity>.md`
-6. For each concept: create or update `wiki/concepts/<concept>.md`
-7. For each decision: create or update `wiki/decisions/<decision>.md`
-8. If the source connects multiple topics: create or update `wiki/syntheses/<synthesis>.md`
-9. Add `[[wikilinks]]` between all new and updated pages — aim to touch 10-15 pages
-10. Update `wiki/index.md` — add entries with link + one-line summary for each new page
-11. Append to `wiki/log.md`: `## [YYYY-MM-DD] ingest | <source title>`
-12. Report a summary of all changes made
+2. **Search wiki first** — check for existing pages covering similar topics before creating anything
+3. Discuss key takeaways with the user — what's important, what to emphasize
+4. Identify key entities, concepts, claims, and decisions in the source
+5. Create or update `wiki/summaries/<slug>.md` with a source summary
+6. For each entity: create or update `wiki/entities/<entity>.md`
+7. For each concept: create or update `wiki/concepts/<concept>.md`
+8. For each decision: create or update `wiki/decisions/<decision>.md`
+9. If the source connects multiple topics: create or update `wiki/syntheses/<synthesis>.md`
+10. Add `[[wikilinks]]` between all new and updated pages
+11. Update `wiki/index.md` — add entries with link + one-line summary for each new page
+12. Append to `wiki/log.md`: `## [YYYY-MM-DD] ingest | <source title>`
+13. Report: pages created vs updated, assumptions made, unresolved questions, follow-up opportunities
+
+- ❌ Extract every noun as an entity → create 12 thin pages from one short article
+- ✅ Extract only durable entities/concepts → create 1 summary + update 2-3 existing pages with new claims
 
 ### Ingest a project
 
@@ -495,20 +677,29 @@ Unregister removes all topics and feeds registered by a specific project. Only e
 
 **Trigger:** User asks a question about wiki knowledge
 
+**Goal:** Synthesize an accurate answer from existing wiki knowledge, citing sources.
+**Done when:** Answer delivered with `[[wikilinks]]`; reusable answers filed back.
+**Verify:** Answer cites actual wiki pages read; no unsupported claims beyond evidence; reusable outputs saved only if durable.
+**Shortcut:** For quick factual lookups, answer directly without creating output files.
+
 **Steps:**
 
-1. Search wiki via qmd (`qmd query "..."`) or read `wiki/index.md` to find relevant pages
+1. **Search wiki first** via qmd (`qmd query "..."`) or read `wiki/index.md` to find relevant pages
 2. Read the most relevant wiki pages
 3. Synthesize an answer citing `[[wikilinks]]` to wiki pages
-4. Choose the appropriate output format:
+4. Label evidence: "based on wiki pages" vs "based on source" vs "inference/open question"
+5. Choose the appropriate output format:
    - **Markdown page** (default)
    - **Comparison table** (for vs/compare questions)
    - **Marp slide deck** (for presentations)
    - **Chart/visualization** (for data-driven answers)
-5. If the answer is comprehensive or reusable: file it back as a wiki page or save to `outputs/`
-6. Append to `wiki/log.md`: `## [YYYY-MM-DD] query | <question summary>`
+6. If the answer is comprehensive or reusable: file it back as a wiki page or save to `outputs/`
+7. Append to `wiki/log.md`: `## [YYYY-MM-DD] query | <question summary>`
 
-**Key insight:** Good answers should be filed back into the wiki. Explorations compound just like ingested sources do.
+- ❌ Answer from memory/training data without checking wiki first → save every answer back to wiki
+- ✅ Search wiki first → synthesize from existing pages → save only durable, reusable outputs
+
+**Key insight:** Good answers should be filed back into the wiki. Explorations compound just like ingested sources do. But not every answer is worth persisting — ask "will this still matter in 30 days?"
 
 ---
 
@@ -516,14 +707,19 @@ Unregister removes all topics and feeds registered by a specific project. Only e
 
 **Trigger:** "update wiki with `<project>` changes", "refresh wiki for `<project>`"
 
+**Goal:** Sync wiki pages with current project documentation state.
+**Done when:** Source copies updated, wiki pages reflect current reality, stale claims resolved.
+**Verify:** Changed sources remain traceable (`source_url` intact); impacted wiki pages updated; no silent deletions.
+
 **Steps:**
 
 1. Identify existing sources for this project: search `sources/` for files with matching `source_url` prefix
 2. For each source, read the original project file at `source_url` path
-3. Compare current project state vs wiki pages — look for:
-   - New files in project docs/ that aren't in sources/ yet
-   - Significant changes to already-ingested files (new sections, changed architecture)
-   - Removed or deprecated features still documented in wiki
+3. Compare current project state vs wiki pages — classify changes by severity:
+   - **Cosmetic**: wording tweaks, formatting (update source copy only)
+   - **Factual update**: new sections, changed setup instructions (update source copy + wiki pages)
+   - **Architecture shift**: new patterns, deprecated components (full re-evaluation of related pages)
+   - **Deprecation/removal**: features removed from project (mark wiki pages as deprecated)
 4. Present a change summary to user:
    ```
    <project> changes detected:
@@ -595,6 +791,9 @@ Agents or agent skills that perform commits should check for doc changes and tri
 - **No user prompt** — auto-sync is non-destructive (updates existing pages, never deletes)
 - **Skip if project not registered** — only sync projects that have wiki pages
 - **Skip if wiki repo unavailable** — graceful degradation, never block the main workflow
+- **Doc-significant changes only** — trigger on documentation changes, not all code changes
+- **Never create discovery topics** during auto-sync
+- **Never rewrite broad synthesis pages** — only update directly impacted summary/entity/concept pages
 
 ---
 
@@ -602,21 +801,42 @@ Agents or agent skills that perform commits should check for doc changes and tri
 
 **Trigger:** "lint wiki"
 
+**Goal:** Assess wiki health, surface actionable issues, and identify knowledge gaps.
+**Done when:** Findings reported as errors/warnings/opportunities; gaps written to `.discoveries/gaps.json`.
+**Verify:** Error counts are real (spot-check 2-3); gap backlog is specific and actionable.
+**Shortcut:** For quick structural checks only, skip contradiction/stale analysis.
+
 **Steps:**
 
 1. Check all pages listed in `wiki/index.md` exist on disk
 2. Find pages on disk NOT listed in `wiki/index.md` (orphans)
 3. Check `[[wikilinks]]` across all pages — flag broken links (parse `[[target|display]]` and check only the target before `|`)
 4. Check frontmatter — verify required fields are present on every page
-5. Flag contradictions across pages — claims that conflict with each other
-6. Flag stale claims — pages with old `updated` date vs newer sources that cover the same topic
-7. Identify data gaps — concepts mentioned in text but lacking their own page
-8. Check missing cross-references — related pages that should link to each other but don't
-9. Suggest web searches to fill knowledge gaps
-10. Suggest new questions to investigate
-11. If `.discoveries/` exists: write detected knowledge gaps to `.discoveries/gaps.json` (enables discover → ingest → lint → discover loop)
-12. Report: errors, warnings, suggestions, research backlog
-13. Append to `wiki/log.md`: `## [YYYY-MM-DD] lint | errors: N, warnings: N`
+5. **Detect likely duplicate pages** — similar titles, overlapping aliases, highly similar sources/tags
+6. **Detect thin pages** — pages too short to justify existence (< 3 substantive lines beyond frontmatter)
+7. Flag contradictions across pages — claims that materially conflict (not just wording differences)
+8. Flag stale claims — pages with old `updated` date vs newer sources that cover the same topic
+9. Identify data gaps — concepts mentioned in text but lacking their own page
+10. Check missing cross-references — related pages that should link to each other but don't
+11. **Check source coverage** — sources with no summary page; summary pages with no downstream links
+12. **Check project registration health** — registered projects with old source snapshots
+13. Suggest web searches to fill knowledge gaps
+14. Suggest new questions to investigate
+15. If `.discoveries/` exists: write detected knowledge gaps to `.discoveries/gaps.json` (enables discover → ingest → lint → discover loop)
+
+**Report findings in three tiers:**
+
+| Tier | Type | Examples |
+|------|------|---------|
+| **Errors** | Must fix | Broken links, missing files, invalid frontmatter, index/disk mismatch |
+| **Warnings** | Should fix | Stale claims, likely duplicates, thin pages, missing refs |
+| **Opportunities** | Could improve | Missing pages, suggested discover topics, synthesis ideas, source coverage gaps |
+
+- ❌ Report every possible missing link as equally important
+- ✅ Prioritize: broken links and duplicates first, then stale claims, then nice-to-have gaps
+
+16. Report: errors, warnings, opportunities count
+17. Append to `wiki/log.md`: `## [YYYY-MM-DD] lint | errors: N, warnings: N, opportunities: N`
 
 ---
 
